@@ -1,0 +1,60 @@
+doctype html
+html(lang="de")
+	head
+		title Lost Spots
+		link(rel="stylesheet", href="/css/bootstrap.paper.min.css")
+		link(rel="stylesheet", href="/css/select2.css")
+		link(rel="stylesheet", href="/css/select2-bootstrap.css")
+		link(rel="stylesheet", href="/css/font-awesome.min.css")
+		link(rel="stylesheet", href="/css/centered_form.css")
+		link(rel="stylesheet", href="/css/basic.css")
+		link(rel="stylesheet", href="/css/dropzone.css")
+		link(rel="stylesheet", href="/css/styles.css")
+
+		meta(name="viewport", content="width=device-width, initial-scale=1.0, user-scalable=no")
+		
+		meta(http-equiv="language", content="deutsch, de")
+
+		style.
+			body { padding-top: 70px; }
+
+		block head
+
+	body
+		div.navbar.navbar-fixed-top#mainNavBar
+			div.container
+				div.navbar-header#mainNavBarMeasure
+					button.navbar-toggle(type="button", data-toggle="collapse", data-target=".navbar-collapse")
+						span.sr-only Navigation
+						span.icon-bar
+						span.icon-bar
+						span.icon-bar
+					a.navbar-brand(href="/!/") Automailer
+				div.navbar-collapse.collapse
+					ul.nav.navbar-nav
+						li.nav_start.active
+							a(href="/!/") Start
+		
+		div.container#messages
+
+		div.container#mainSpinner
+
+		div#content.container
+			- if (messages) {
+				for message in messages
+					div(class='alert alert-dismissable alert-#{message.type}')
+						button.close(type="button", data-dismiss="alert", aria-hidden="true") &times; 
+						span #{message.text}
+			- }
+
+			block content
+
+		div.footer#mainFooter
+			div.container.text-muted
+				div.pull-left
+					block footer
+				div.pull-right
+					p#footerLinks
+						
+			
+		block scripts
