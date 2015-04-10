@@ -352,8 +352,12 @@ function getPersonFromString(string, companyId, datasetId) {
 
 app.get('/dataset/:datasetid/all', function(req, res, next)	{
 	var datasetid = req.params.datasetid;
-	console.log("find: " + datasetid);
-	CompanyModel.find({ dataset: datasetid }, { raw: 0, __v: 0 }).populate("executives", "-raw -__v").exec(function(err, docs) {
+	var take = req.param("take", 0);
+	if (isNaN(take) || take <= 0 || take > 500) take = 500;
+	var skip = req.param("skip", 0);
+	if (isNaN(take) || take < 0) skip = 0;
+
+	CompanyModel.find({ dataset: datasetid }, { raw: 0, __v: 0 }).populate("executives", "-raw -__v").limit(take).skip(skip).exec(function(err, docs) {
 		return res.json(docs);
 	});
 });
