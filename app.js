@@ -4,6 +4,7 @@ var mongoose = require("mongoose");
 var url = require('url');
 var CSVConverter = require("csvtojson").core.Converter;
 var fs = require('fs');
+var async = require('async');
 var Hashids = require('hashids');
 var mkdirp = require('mkdirp');
 var FlakeIdGen = require('flake-idgen')
@@ -17,8 +18,8 @@ var logger = require('tracer').colorConsole();
 var dbconnection = mongoose.connect("mongodb://127.0.0.1:27017/automailer");
 var DatasetModel = require("./models/Dataset")(dbconnection);
 var MailModel = require("./models/Mail")(dbconnection);
-var CompanyModel = require("./models/Company")(dbconnection);
 var PersonModel = require("./models/Person")(dbconnection);
+var CompanyModel = require("./models/Company")(dbconnection);
 
 app.configure(function() {
 	app.set("view engine", "jade");
@@ -87,37 +88,35 @@ app.put('/dataset/:datasetid/upload', function(req, res, next) {
 
 			if (largeFile) {
 				csvConverter.on("record_parsed",function(resultRow,rawRow,rowIndex){
-					//console.log(rawRow);
 					try { 
 						saveCompanyAndPersonsFromCSVRow(resultRow, datasetId);
 					}
 					catch (e) { logger.error(e); }
 				});
 			}
-			else {
-				csvConverter.on("end_parsed",function(jsonObj){
-					try { 
-						if (jsonObj) {
-							var parsed = jsonObj.csvRows ? jsonObj.csvRows : jsonObj;
-							for (var rowIndex in parsed) {
-								try { 
-									saveCompanyAndPersonsFromCSVRow(jsonObj[rowIndex], datasetId);
-								}
-								catch (e) { logger.error(e); }
-							}
-						}
 
-						try { fs.unlinkSync(file.path); } 
-						catch(e) { logger.error(e); }
-						
-						return res.send(200);
+			csvConverter.on("end_parsed",function(jsonObj){
+				try { 
+					if (jsonObj && !largeFile) {
+						var parsed = jsonObj.csvRows ? jsonObj.csvRows : jsonObj;
+						for (var rowIndex in parsed) {
+							try { 
+								saveCompanyAndPersonsFromCSVRow(jsonObj[rowIndex], datasetId);
+							}
+							catch (e) { logger.error(e); }
+						}
 					}
-					catch (e) { 
-						logger.error(e); 
-						return res.send(500);
-					}
-				});
-			}
+
+					try { fs.unlinkSync(file.path); } 
+					catch(e) { logger.error(e); }
+					
+					return res.send(200);
+				}
+				catch (e) { 
+					logger.error(e); 
+					return res.send(500);
+				}
+			});
 
 			var fileStream = fs.createReadStream(file.path); //, { encoding: 'utf8' }
 
@@ -140,21 +139,73 @@ function saveCompanyAndPersonsFromCSVRow(row, datasetId) {
 			return;
 		}
 
-		var person;
-		for (var i = 1; i <= 100; i++) {
-			if (!row["Management/Executives" + i]) continue;
-			person = getPersonFromString(row["Management/Executives" + i], company._id, datasetId);
-
-			if (person) {
-				person.save(function (err) {
-					if (err) {
-						logger.error(err);
+		var i = 1;
+		var persons = [];
+		async.whilst(
+		    function () { return i <= 100; },
+		    function (callback) {
+		    	var currentRow = row["Management/Executives" + i];
+		        i++;
+		    	if (currentRow && currentRow.length > 0); {
+					var person = getPersonFromString(currentRow, company._id, datasetId);
+					if (person) {
+						person.save(function (err) {
+							if (err) {
+								logger.error(err);
+								callback();
+								return;
+							}
+							persons.push(person._id);
+							callback();
+						});
 						return;
 					}
-				});
-			}
-		}
+				}
+				callback();
+		    },
+		    function (err) {
+		    	if (err) console.error("Error: " + err);
+		    	else {
+		    		company.executives = persons;
+					company.save(function (err) {
+						if (err) {
+							logger.error(err);
+						}
+					});
+		    	}
+		    }
+		);
 	});
+}
+
+function savePersonAndUpdateCompany(person, company) {
+	var p = person;
+	var c = company;
+	if (p && c) {
+		p.save(function (err) {
+			if (err) {
+				logger.error(err);
+				return;
+			}
+
+			c.model(c.constructor.modelName).findOne({_id: c._id},
+			    function(err, newDoc) {
+			        if (!err) {
+			            c = newDoc;
+			        }
+
+			        if (!c.executives) c.executives = [];
+					c.executives.push(p._id);
+					c.save(function (err) {
+						if (err) {
+							logger.error(err);
+							logger.log(p._id);
+						}
+					});
+			    }
+			);
+		});
+	}
 }
 
 function tryGetNumber(value) {
@@ -175,9 +226,6 @@ function tryGetNumber(value) {
 
 function getCompanyFromCSVRow(row, datasetId) {
 	var company = new CompanyModel();
-
-	//console.log(JSON.stringify(row));
-	console.log(row["Firma/Company"] + " StraßeAdresse: " + row["StraßeAdresse/StreetAddress"]);
 
 	company.dataset = datasetId;
 	company.raw = JSON.stringify(row);
@@ -239,13 +287,18 @@ function getPersonFromString(string, companyId, datasetId) {
 	var nameSegments = segments[1].split(" ");
 	var nameSegmentsLength = nameSegments.length;
 
+	var nestedDepartementClosed = true;
+
 	// e.g. "Aufsichtsrat, Ulrich Ehrhardt (stellv. Vors.)"
 	// and not e.g. "Geschäftsführer, Volker Hipp, Ulm, Donau"
-	if (nameSegments && nameSegments[-1] && nameSegments[-1].startsWith("(")) { // && nameSegments[-1].endsWith(")")) {
+	if (nameSegments && nameSegments[nameSegmentsLength - 1] && nameSegments[nameSegmentsLength - 1].trim().startsWith("(")) { // && nameSegments[-1].endsWith(")")) {
+		// e.g. "... (IT/EDV)"
+		person.departement = nameSegments[nameSegmentsLength - 1].trim();
+		person.departement = person.departement.substring(1).trim();
 		nameSegmentsLength -= 1;
 
-		// e.g. "... (IT/EDV)"
-		person.departement = nameSegments[-1].trim();	
+		if (person.departement.endsWith(")")) person.departement = person.departement.substring(0, person.departement.length - 1).trim();
+		else nestedDepartementClosed = false;
 	}
 
 	// Suggestion: Double last names always have a -
@@ -262,91 +315,46 @@ function getPersonFromString(string, companyId, datasetId) {
 	var titleOffset = 0;
 
 	// append all titles
-	for (titleOffset = 0; titleOffset < nameSegmentsLength - 1; i++) {
+	for (titleOffset = 0; titleOffset < nameSegmentsLength; titleOffset++) {
+		if (nameSegments[titleOffset].trim().length <= 0) continue;
 		// titles have to end with . to be valid and ongoing
-		if (!nameSegments[titleOffset].endsWith(".")) break;
-		person.title = i > 0 ? person.title + " " + nameSegments[titleOffset].trim() : nameSegments[titleOffset].trim();
+		if (!nameSegments[titleOffset].trim().endsWith(".")) break;
+		person.title = person.title && person.title.length > 0 ? person.title + " " + nameSegments[titleOffset].trim() : nameSegments[titleOffset].trim();
 	}
 
 	// remove title property if nothing found
 	if (titleOffset <= 0) person.title = undefined;
 
 	// append all first names
-	for (var i = titleOffset; i < nameSegmentsLength - 1; i++) {
-		person.firstName = i > titleOffset ? person.firstName + " " + nameSegments[i].trim() : nameSegments[i].trim();
+	for (var i = titleOffset; i < nameSegmentsLength; i++) {
+		person.firstName = person.firstName && person.firstName.length > 0 ? person.firstName + " " + nameSegments[i].trim() : nameSegments[i].trim();
 	}
 
 	// end is always location such as "..., Stade, Niederelbe"
 	if (segmentsLength > 2) {
 		person.location = "";
 		for (var i = 2; i < segmentsLength; i++) {
-			person.location = i > 2 ? person.location + ", " + segments[i].trim() : segments[i].trim(); 
+			if (!nestedDepartementClosed) {
+				person.departement = person.departement && person.departement.length > 0 ? person.departement + ", " + segments[i].trim() : segments[i].trim();
+				if (segments[i].trim().endsWith(")")) {
+					nestedDepartementClosed = true;
+					person.departement = person.departement.substring(0, person.departement.length - 1).trim();
+				}
+			}
+			else {
+				person.location = person.location && person.location.length > 0 ? person.location + ", " + segments[i].trim() : segments[i].trim(); 
+			}
 		}
 	}
 
 	return person;
 }
 
-app.post("/location/:id/photo/add/flickr/:url", function(req, res, next){
-	if (!req.user)
-		return res.send(401);
-	
-	var locationId = req.params["id"];
-	var flickrUrl = req.params["url"];
-
-	logger.debug("location: " + locationId);
-	logger.debug("url: " + flickrUrl);
-
-	if (locationId == null || locationId.length <= 0)
-		return res.send(404);
-	if (flickrUrl == null || flickrUrl.length <= 0)
-		return res.send(500, {error: ["Leider ist etwas schief gelaufen!"]});
-
-	LocationModel.findOne({"_id" : locationId}, function (err, location) {
-		if (err) {
-			logger.debug(req.params, err);
-			return res.send(500, {error: ["Leider ist etwas schief gelaufen!"]});
-		}
-		
-		if (!location)
-			return res.send(404);
-
-		if (location.createdByUser != req.user.id)
-			return res.send(401);
-
-		if (!location.pictures)
-			location.pictures = []
-
-		getFlickrInfo(getFlickrPhotoIdFromURL(flickrUrl), function(error, info) {
-			if (!error && info) {
-				location.pictures.push({
-					url: flickrUrl, 
-					flickrBase: info.flickrBase,
-					displayUrl: info.displayUrl,
-					taken: info.taken,
-					user: req.user.id,
-					owner: {
-						name: info.owner.name,
-						profile: info.owner.profile
-					},
-					tags: info.tags_
-				});
-
-				location.save(function (err) {
-					if (err) {
-						logger.error(err);
-						return res.send(500, {error: ["Leider ist etwas schief gelaufen!"]});
-					}
-					else {
-						res.send(200, {success: ["Bild \"" + info.title + "\" erfolgreich hinzugefügt!"]});
-					}
-				});
-			}
-			else {
-				logger.error(error);
-				return res.send(500, {error: ["Leider ist etwas schief gelaufen!"]});
-			}
-		});
+app.get('/dataset/:datasetid/all', function(req, res, next)	{
+	var datasetid = req.params.datasetid;
+	console.log("find: " + datasetid);
+	CompanyModel.find({ dataset: datasetid }, { raw: 0, __v: 0 }).populate("executives", "-raw -__v").exec(function(err, docs) {
+		return res.json(docs);
 	});
 });
 

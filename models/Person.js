@@ -18,9 +18,9 @@ module.exports = function(mongoose) {
 			date: { type: Date }
 		}],
 		telephone: { type: String },
-		company: { type: mongoose.Schema.ObjectId, ref: 'CompanySchema', index: true },
+		company: { type: mongoose.Schema.ObjectId, ref: 'Company', index: true },
 		active: { type: Boolean, default: true },
-		dataset: { type: mongoose.Schema.ObjectId, ref: 'DatasetSchema', index: true, required: true }
+		dataset: { type: mongoose.Schema.ObjectId, ref: 'Dataset', index: true, required: true }
 	});
 
 	return mongoose.model("Person", PersonSchema);

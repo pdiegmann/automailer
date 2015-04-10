@@ -24,9 +24,10 @@ module.exports = function(mongoose) {
 		}],
 		offices: [String],
 		telephone: { type: String },
+		executives: [{ type: mongoose.Schema.ObjectId, ref: 'Person', index: true }],
 		email: { type: String, index: true },
 		active: { type: Boolean, default: true },
-		dataset: { type: mongoose.Schema.ObjectId, ref: 'DatasetSchema', index: true, required: true }
+		dataset: { type: mongoose.Schema.ObjectId, ref: 'Dataset', index: true, required: true }
 	});
 
 	return mongoose.model("Company", CompanySchema);
