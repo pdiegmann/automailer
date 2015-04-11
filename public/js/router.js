@@ -1,5 +1,5 @@
-define(["views/index", "views/notFound", "views/oops", "models/Location", "models/LocationCollection", "models/Location"], 
-	function(IndexView, NotFoundView, OopsView, Location, LocationCollection, Location) {
+define(["views/index", "views/uploadCSV", "views/search", "views/notFound", "views/oops", "models/Company", "models/CompanyCollection"], 
+	function(IndexView, UploadCSVView, SearchView, NotFoundView, OopsView, Company, CompanyCollection) {
 	var Router = Backbone.Router.extend({
 		permissions: {},
 		currentView: null,
@@ -14,6 +14,8 @@ define(["views/index", "views/notFound", "views/oops", "models/Location", "model
 
 		routes: {
 			"!/index": "index",
+			"!/upload/csv": "uploadCSV",
+			"!/search": "search",
 			"!/notFound": "notFound",
 			"!/oops": "oops",
 			"*actions" : "defaultRoute"
@@ -31,6 +33,14 @@ define(["views/index", "views/notFound", "views/oops", "models/Location", "model
 		index: function() {
 			activateMenuItem('nav_start');
 			this.changeView(new IndexView());
+		},
+		uploadCSV: function() {
+			activateMenuItem('nav_upload_csv');
+			this.changeView(new UploadCSVView());
+		},
+		search: function() {
+			activateMenuItem('nav_search');
+			this.changeView(new SearchView());
 		},
 		notFound: function() {
 			activateMenuItem('');

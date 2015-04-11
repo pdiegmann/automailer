@@ -53,6 +53,20 @@ function stripAlphaChars(source) {
   return out; 
 }
 
+app.get('/datasets/all', function(req, res, next) {
+	DatasetModel.find({"active" : true}, { "__v": 0 }, function (err, datasets) {
+		if (err) {
+			logger.debug(req.params, err);
+			return res.send(500);
+		}
+
+		if (!datasets)
+			return res.send(500);
+
+		return res.json(datasets);
+	});
+});
+
 app.put('/dataset/:datasetid/upload', function(req, res, next) {
 	var file = req.files.file;
 	var datasetId = req.params.datasetid;
@@ -71,11 +85,11 @@ app.put('/dataset/:datasetid/upload', function(req, res, next) {
 	DatasetModel.findOne({"_id" : datasetId}, function (err, dataset) {
 		if (err) {
 			logger.debug(req.params, err);
-			return;
+			return res.send(500);
 		}
 		
 		if (!dataset)
-			return;
+			return res.send(500);
 
 		try {
 			var csvConverter = new CSVConverter({ 
@@ -326,7 +340,7 @@ function getPersonFromString(string, companyId, datasetId) {
 	if (titleOffset <= 0) person.title = undefined;
 
 	// append all first names
-	for (var i = titleOffset; i < nameSegmentsLength; i++) {
+	for (var i = titleOffset; i < nameSegmentsLength - 1; i++) {
 		person.firstName = person.firstName && person.firstName.length > 0 ? person.firstName + " " + nameSegments[i].trim() : nameSegments[i].trim();
 	}
 
@@ -354,11 +368,89 @@ app.get('/dataset/:datasetid/all', function(req, res, next)	{
 	var datasetid = req.params.datasetid;
 	var take = req.param("take", 0);
 	if (isNaN(take) || take <= 0 || take > 500) take = 500;
+	take = parseInt(take);
 	var skip = req.param("skip", 0);
-	if (isNaN(take) || take < 0) skip = 0;
+	if (isNaN(skip) || skip < 0) skip = 0;
+	skip = parseInt(skip);
 
 	CompanyModel.find({ dataset: datasetid }, { raw: 0, __v: 0 }).populate("executives", "-raw -__v").limit(take).skip(skip).exec(function(err, docs) {
 		return res.json(docs);
+	});
+});
+
+app.get('/dataset/:datasetid/filter', function(req, res, next) {
+	var start = process.hrtime();
+
+	var datasetid = req.params.datasetid;
+	var take = req.param("take", 0);
+	if (isNaN(take) || take <= 0 || take > 500) take = 500;
+	take = parseInt(take);
+	var skip = req.param("skip", 0);
+	if (isNaN(skip) || skip < 0) skip = 0;
+	skip = parseInt(skip);
+
+	var departement = req.param("departement", "");
+	var departementSegments = departement.split(",");
+	var departements = [];
+	for (var i in departementSegments) {
+		if (!departementSegments[i] || departementSegments[i].length <= 0) continue;
+		departements.push(new RegExp(".*" + departementSegments[i] + ".*", "i"));
+	}
+
+	var position = req.param("position", "");
+	var positionSegments = position.split(",");
+	var positions = [];
+	for (var i in positionSegments) {
+		if (!positionSegments[i] || positionSegments[i].length <= 0) continue;
+		positions.push(new RegExp(".*" + positionSegments[i] + ".*", "i"));
+	}
+
+	var orQueries = [];
+	if (departements && departements.length > 0) {
+		orQueries.push({ "departement": { $in : departements } });
+	}
+	if (positions && positions.length > 0) {
+		orQueries.push({ "positions": { $in : positions } });
+	}
+
+	var query;
+	if (orQueries.length > 0) {
+		query = { dataset: datasetid, $or: orQueries };
+	}
+	else {
+		query = { dataset: datasetid };
+	}
+
+	PersonModel.find(query, { raw: 0, title: 0, firstName: 0, lastName: 0, location: 0, departement: 0, position: 0, created: 0, updated: 0, failedMailAddresses: 0, succeededMailAddresses: 0,  telephone: 0, company: 0, active: 0, dataset: 0, "__v": 0 }, function (err, personIds) {
+		if (err) {
+			console.error(err);
+			return res.send(500);
+		}
+
+		if (!personIds)
+			return res.send(500);
+
+		console.log("skip: " + skip + " take: " + take);
+
+		CompanyModel.count({ dataset: datasetid, executives: { $in: personIds }}, function(err, count) {
+			CompanyModel.find({ dataset: datasetid, executives: { $in: personIds }}, { "raw": 0, "__v": 0 })
+			.populate("executives", "-raw -__v")
+			.limit(take)
+			.skip(skip)
+			.exec(function (err, companies) {
+				if (err) {
+					logger.debug(req.params, err);
+					return res.send(500);
+				}
+
+				if (!companies)
+					return res.send(500);
+
+			    var elapsed = process.hrtime(start)[1] / 1000000; // divide by a million to get nano to milli
+
+				return res.json({ duration: parseFloat(Math.round(elapsed).toFixed(0)), take: take, skip: skip, count: companies.length, total: count, results: companies});
+			});
+		});
 	});
 });
 

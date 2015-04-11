@@ -93,6 +93,29 @@ define(["router"], function(router) {
 				}
 			}
 		});
+
+		$('.nav li:not(.alwaysVisible)').each(function(index, li) { 
+			$(li).addClass("disabled");
+			$(li).on("click", function(e) {
+				e.preventDefault();
+				return false;
+			});
+		});
+
+		$.get('/datasets/all', function(datasets) {
+			$('#dataset-selector option:not(.fixedOption)').remove();
+			$.each(datasets, function(index, dataset) {
+				$('#dataset-selector').append("<option value=\"" + dataset._id + "\">" + dataset.name + "</option>");
+			});
+
+			$('#dataset-selector').on("change", function(e) {
+				$('.nav li.disabled:not(.alwaysVisible)').each(function(index, li) { 
+					$(li).removeClass("disabled");
+					$(li).unbind("click");
+				});
+				$('#dataset-selector').unbind("change");
+			});
+		});
 	}
 
 	return {

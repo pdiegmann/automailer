@@ -6,7 +6,7 @@ require.config({
 		Select2DE: "/js/libs/select2_locale_de",
 		Underscore: "https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.6.0/underscore-min", //"/js/libs/underscore",
 		Backbone: "/js/libs/backbone",
-		BackbonePageable: "/js/libs/backbone-pageable",
+		BackbonePageable: "/js/libs/backbone.paginator",
 		InfiniScroll: "/js/libs/infiniScroll",
 		text: "/js/libs/text",
 		serializeJSON: "/js/libs/serializeJSON",
@@ -42,8 +42,8 @@ require.config({
 			exports: "Backbone"
 		},
 		"BackbonePageable": {
-			deps: ['Underscore', 'Backbone'],
-			exports: 'PageableCollection'
+			deps: ['Backbone','Underscore','jQuery'],
+			exports: 'Backbone.Paginator'
 		},
 		"Upload": {
 			deps: ['jQuery']
@@ -51,7 +51,7 @@ require.config({
 		"LeafletMarkerCluster": {
 			deps: ["jQuery", "Leaflet", "Moment"]
 		},
-		"FotoLocations": ["Backbone", "Bootstrap", "BackbonePageable", "Upload", "Leaflet", "LeafletMarkerCluster", "Moment"]
+		"FotoLocations": ["Backbone", "Bootstrap", "BackbonePageable", "Upload", "Moment"]
 	}
 });
 

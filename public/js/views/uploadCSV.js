@@ -1,5 +1,5 @@
-define(["text!templates/addPicture.html", "models/Location", "libs/dropzone-amd-module"], function(pictureTemplate, Location, Dropzone) {
-	var addPictureView = Backbone.View.extend({
+define(["text!templates/uploadCSV.html", "libs/dropzone-amd-module"], function(uploadTemplate, Dropzone) {
+	var indexView = Backbone.View.extend({
 		el: $('#content'),
 
 		events: {
@@ -7,27 +7,16 @@ define(["text!templates/addPicture.html", "models/Location", "libs/dropzone-amd-
             'error': 'handleAjaxError'
         },
 
-		initialize: function() {
-			if (!this.model)
-				this.model = new Location();
-			this.model.on('reset', this.render, this);
-			this.model.on('sync', this.render, this);
-		},
-
 		render: function() {
-			$(this.el).html(_.template(pictureTemplate, {
-				model: this.model.toJSON()
-			}));
+			this.$el.html(_.template(uploadTemplate));
 
 			var settings = { 
 				maxFilesize: 12, 
 				method: "put", 
 				clickable: true, 
-				createImageThumbnails: true, 
-				thumbnailWidth: 200, 
-				thumbnailHeight: 200, 
-				acceptedFiles: "image/*",
-				url: "/upload"
+				createImageThumbnails: false, 
+				acceptedFiles: "text/csv",
+				url: "/dataset/" + $("#dataset-selector").val() + "/upload"
 			};
 			var myDropzone = new Dropzone("#pictureUploadDropzone", settings);
 
@@ -50,5 +39,5 @@ define(["text!templates/addPicture.html", "models/Location", "libs/dropzone-amd-
         }
 	});
 
-	return addPictureView;
+	return indexView;
 });

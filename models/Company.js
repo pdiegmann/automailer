@@ -15,6 +15,8 @@ module.exports = function(mongoose) {
 			NACE: { type: Number, index: true },
 			USSIC: { type: Number, index: true },
 		},
+		created: { type: Date, default: Date.now },
+		updated: { type: Date, default: Date.now },
 		legal: { type: String },
 		founded: { type: String },
 		employees: { type: Number },

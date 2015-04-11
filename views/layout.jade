@@ -32,8 +32,17 @@ html(lang="de")
 					a.navbar-brand(href="/!/") Automailer
 				div.navbar-collapse.collapse
 					ul.nav.navbar-nav
-						li.nav_start.active
+						li.nav_start.alwaysVisible.active
 							a(href="/!/") Start
+						li.nav_upload_csv
+							a(href="/!/upload/csv") CSV laden
+						li.nav_search
+							a(href="/!/search") Suchen
+					form.hidden-xs.hidden-sm.navbar-form.navbar-right(role="search", style="width:31%", action="/!/search",  method="GET")
+						div.input-group
+							span.input-group-addon Datensatz
+							select.form-control#dataset-selector
+								option(value="").fixedOption -- Wählen --
 		
 		div.container#messages
 
