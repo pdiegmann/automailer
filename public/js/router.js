@@ -31,6 +31,7 @@ define(["views/index", "views/uploadCSV", "views/search", "views/notFound", "vie
 				width: 150
 			}); } catch(e) {}
 			try { $('.carousel').carousel(); } catch(e) {}
+			try { $('#loadingOverlay').remove(); } catch(e) {}
 		},
 		index: function() {
 			activateMenuItem('nav_start');

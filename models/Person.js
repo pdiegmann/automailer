@@ -9,13 +9,10 @@ module.exports = function(mongoose) {
 		position: { type: String, index: true },
 		created: { type: Date, default: Date.now },
 		updated: { type: Date, default: Date.now },
-		failedMailAddresses: [{
+		mailAddresses: [{
 			address: { type: String, index: true },
-			date: { type: Date }
-		}],
-		succeededMailAddresses: [{
-			address: { type: String, index: true },
-			date: { type: Date }
+			state: { type: Number, index: true }, // 0: not tried, 1: in progress, 2: successfull, 3: failed
+			date: { type: Date, default: Date.now }
 		}],
 		telephone: { type: String },
 		company: { type: mongoose.Schema.ObjectId, ref: 'Company', index: true },

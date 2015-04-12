@@ -46,6 +46,8 @@ define(["Underscore", "text!templates/search.html", "text!templates/companyListS
 			if (!this.collection.queryParams) this.collection.queryParams = {};
 			$.extend(this.collection.queryParams,params);
 
+			this.showLoading();
+
 			this.collection.getFirstPage().done(function() {
 				that.doneFetchingPage();
 			});
@@ -57,8 +59,7 @@ define(["Underscore", "text!templates/search.html", "text!templates/companyListS
 			if (!collection)
 				collection = this.collection;
 
-			var departements = $("input[name='executive[departement]']").val();
-			var departementSegments = departements.split(',');
+			var departementSegments = $("input[name='executive[departement]']").val() ? $("input[name='executive[departement]']").val().split(',') : [];
 			var departementRegexStr = "";
 			for (var i in departementSegments) {
 				if (!departementSegments[i] || departementSegments[i].length <= 0) continue;
@@ -66,15 +67,28 @@ define(["Underscore", "text!templates/search.html", "text!templates/companyListS
 				departementRegexStr += ".\*" + departementSegments[i].trim() + ".\*";
 			}
 
+			var positionSegments = $("input[name='executive[position]']").val() ? $("input[name='executive[position]']").val().split(',') : [];
+			var positionRegexStr = "";
+			for (var i in positionSegments) {
+				if (!positionSegments[i] || positionSegments[i].length <= 0) continue;
+				if (positionRegexStr.length > 0) positionRegexStr += "|";
+				positionRegexStr += ".\*" + positionSegments[i].trim() + ".\*";
+			}
+
+			var locationSegments = $("input[name='executive[location]']").val() ? $("input[name='executive[location]']").val().split(',') : [];
+			var locationRegexStr = "";
+			for (var i in locationSegments) {
+				if (!locationSegments[i] || locationSegments[i].length <= 0) continue;
+				if (locationRegexStr.length > 0) locationRegexStr += "|";
+				locationRegexStr += ".\*" + locationSegments[i].trim() + ".\*";
+			}
+
 			var t = _.template(companyListShortTemplate)({
                 "model": collection.toJSON(),
                 "state": collection.state,
-                "mailSuggestions": function(person) {
-                	return ["ABC"];
-                },
-                "departementRegex": new RegExp(departementRegexStr),
-                "positionRegex": null,
-                "locationRegex": null
+                "departementRegex": departementRegexStr && departementRegexStr.length > 0 ? new RegExp(departementRegexStr) : null,
+                "positionRegex": positionRegexStr && positionRegexStr.length > 0 ? new RegExp(positionRegexStr) : null,
+                "locationRegex": locationRegexStr && locationRegexStr.length > 0 ? new RegExp(locationRegexStr) : null
             });
 
 			$('.results').html(t);
@@ -108,6 +122,8 @@ define(["Underscore", "text!templates/search.html", "text!templates/companyListS
 			else {
 				$('#info').html(this.collection.state.totalRecords + " Ergebnisse in " + (this.collection.duration / 1000).toFixed(2) + "s gefunden.");
 			}
+
+			this.hideLoading();
 		},
 
 		gotoPage: function(e) {
@@ -118,12 +134,23 @@ define(["Underscore", "text!templates/search.html", "text!templates/companyListS
 			var page = $e.data("gotopage");
 			if (this.collection && page) {
 				var that = this;
+				this.showLoading();
 				this.collection.getPage(page).done(function() {
 					that.doneFetchingPage();
 				});
 			}
 
 			return false;
+		},
+
+		hideLoading: function() {
+			$('#loadingOverlay').remove();
+		},
+
+		showLoading: function() {
+	        // add the overlay with loading image to the page
+	        var over = "<div id='loadingOverlay'><div class='uil-ring-css' style='-webkit-transform:scale(0.89)'><div></div></div></div>";
+	        $(over).appendTo('body');
 		}
 
 	});

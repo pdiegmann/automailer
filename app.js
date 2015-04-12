@@ -191,7 +191,11 @@ function saveCompanyAndPersonsFromCSVRow(row, datasetId) {
 								callback();
 								return;
 							}
+							
 							persons.push(person._id);
+
+							guessMailAddresses(person, company);
+
 							callback();
 						});
 						return;
@@ -212,36 +216,6 @@ function saveCompanyAndPersonsFromCSVRow(row, datasetId) {
 		    }
 		);
 	});
-}
-
-function savePersonAndUpdateCompany(person, company) {
-	var p = person;
-	var c = company;
-	if (p && c) {
-		p.save(function (err) {
-			if (err) {
-				logger.error(err);
-				return;
-			}
-
-			c.model(c.constructor.modelName).findOne({_id: c._id},
-			    function(err, newDoc) {
-			        if (!err) {
-			            c = newDoc;
-			        }
-
-			        if (!c.executives) c.executives = [];
-					c.executives.push(p._id);
-					c.save(function (err) {
-						if (err) {
-							logger.error(err);
-							logger.log(p._id);
-						}
-					});
-			    }
-			);
-		});
-	}
 }
 
 function tryGetNumber(value) {
@@ -400,6 +374,93 @@ app.get('/dataset/:datasetid/all', function(req, res, next)	{
 	});
 });
 
+function guessMailAddresses(person, company) {
+	if (!person) return;
+
+	if (!company) {
+		CompanyModel.findOne({ "_id": person.company }, function(err, company) {
+			if (err) {
+				console.error(err);
+				return;
+			}
+
+			if (!company) 
+				return;
+
+			guessMailAddresses(company, person);
+		});
+		return;
+	}
+
+	var firstName = person.firstName;
+	var lastName = person.lastName;
+	var companyDomain = company.email ? company.email.split("@").pop() : "";
+
+	var validCharsRegex = /[^a-zA-Z0-9\-_]/g;
+	firstName = firstName.replace(validCharsRegex, "").trim().toLowerCase();
+	lastName = lastName.replace(validCharsRegex, "").trim().toLowerCase();
+
+	var firstNameAlternatives = [];
+	if (firstName && firstName.length > 0) {
+		if (firstName.indexOf(" ") > -1) {
+			firstNameAlternatives = [
+				firstName[0],
+				firstName.replace(" ", ""),
+				firstName.replace(" ", "."),
+				firstName.replace(" ", "_"),
+				firstName.replace(" ", "-"),
+				firstName.replace("-", ""),
+				firstName.replace("-", "."),
+				firstName.replace("-", "_")
+			];
+		}
+		else {
+			firstNameAlternatives = [firstName[0], firstName];
+		}
+	}
+
+	var lastNameAlternatives = [];
+	if (lastName && lastName.length > 0) {
+		if (lastName.indexOf(" ") > -1) {
+			lastNameAlternatives = [
+				lastName.replace(" ", ""),
+				lastName.replace(" ", "."),
+				lastName.replace(" ", "_"),
+				lastName.replace(" ", "-"),
+				lastName.replace("-", ""),
+				lastName.replace("-", "."),
+				lastName.replace("-", "_")
+			];
+		}
+		else {
+			lastNameAlternatives = [lastName];
+		}
+	}
+
+	var mailAddresses = [];
+	person.mailAddresses = [];
+	for (var i = 0; i < lastNameAlternatives.length; i++) {
+		var mailAddress = lastNameAlternatives[i] + "@" + companyDomain;
+		mailAddresses.push(mailAddress);
+		person.mailAddresses.push({ address: mailAddress, state: 0 });
+
+		for (var j = 0; j < firstNameAlternatives.length; j++) {
+			mailAddress = firstNameAlternatives[j] + "." + lastNameAlternatives[i] + "@" + companyDomain;
+			mailAddresses.push(mailAddress);
+			person.mailAddresses.push({ address: mailAddress, state: 0 });
+		}
+	}
+
+	if (lastNameAlternatives.length > 0)
+		console.log(mailAddresses);
+
+	person.save(function (err) {
+		if (err) {
+			logger.error(err);
+		}
+	});
+}
+
 function stringArrayToRegexArray(strArray) {
 	if (!strArray) return [];
 	var segments = strArray.split(",");
@@ -428,8 +489,6 @@ function stringArrayToNumberArray(strArray) {
 
 app.get('/dataset/:datasetid/filter', function(req, res, next) {
 	var start = process.hrtime();
-
-	console.log(req.originalUrl);
 
 	var datasetid = req.params.datasetid;
 	var take = req.param("take", 0);

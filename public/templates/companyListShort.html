@@ -14,7 +14,7 @@
 		<tr>
 			<td><%= ((state.currentPage - state.firstPage) * state.pageSize + parseInt(i) + 1) %></td> 
 			<td>
-				<a href="/!/location/<%=model[i]._id%>"><%=model[i].name %></a>
+				<%=model[i].name %>
 			</td>
 			<td><%= model[i].employees %></td>
 			<td>
@@ -31,41 +31,19 @@
 				<ul>
 					<% for (var j in model[i].executives) { %>
 						<% 
-						if (!model[i].executives[j]) { continue; }
-
 						var matchesQuery = !departementRegex && !positionRegex && !locationRegex ? true : false;
+
 						if (!matchesQuery && (departementRegex && model[i].executives[j].departement && departementRegex.test(model[i].executives[j].departement))) {
 							matchesQuery = true;
 						}
-						if (!matchesQuery && (positionRegex && model[i].executives[j].position && model[i].executives[j].position.test(positionRegex))) {
+						if (!matchesQuery && (positionRegex && model[i].executives[j].position && positionRegex.test(model[i].executives[j].position))) {
 							matchesQuery = true;
 						}
-						if (!matchesQuery && (locationRegex && model[i].executives[j].location && model[i].executives[j].location.test(locationRegex))) {
+						if (!matchesQuery && (locationRegex && model[i].executives[j].location && locationRegex.test(model[i].executives[j].location))) {
 							matchesQuery = true;
 						}
+
 						if (matchesQuery) { 
-							var executive = model[i].executives[j];
-							var companyDomain = "";
-							if (model[i].email) {
-								companyDomain = model[i].email.split("@").pop();
-							}
-							var suggestedMails = [
-								executive.lastName.replace(" ", "").toLowerCase() + "@" + companyDomain,
-							];
-							if (executive.lastName.indexOf(" ") > -1) {
-								suggestedMails.push(executive.lastName.replace(" ", "_").toLowerCase() + "@" + companyDomain);
-								suggestedMails.push(executive.lastName.replace(" ", ".").toLowerCase() + "@" + companyDomain);
-							}
-							if (executive.firstName && executive.firstName.length > 0) {
-								suggestedMails.push(executive.firstName.replace(" ", "").toLowerCase() + "." + executive.lastName.replace(" ", "").toLowerCase() + "@" + companyDomain);
-								suggestedMails.push(executive.firstName[0].toLowerCase() + "." + executive.lastName.replace(" ", "").toLowerCase() + "@" + companyDomain);
-								if (executive.lastName.indexOf(" ") > -1 || executive.firstName.indexOf(" ") > -1) {
-									suggestedMails.push(executive.firstName.replace(" ", "_").toLowerCase() + "." + executive.lastName.replace(" ", "_").toLowerCase() + "@" + companyDomain);
-									suggestedMails.push(executive.firstName.replace(" ", ".").toLowerCase() + "." + executive.lastName.replace(" ", ".").toLowerCase() + "@" + companyDomain);
-									suggestedMails.push(executive.firstName[0].toLowerCase() + "." + executive.lastName.replace(" ", "_").toLowerCase() + "@" + companyDomain);
-									suggestedMails.push(executive.firstName[0].toLowerCase() + "." + executive.lastName.replace(" ", ".").toLowerCase() + "@" + companyDomain);
-								}
-							}
 						%>
 							<li><%= model[i].executives[j].lastName %>, <%= model[i].executives[j].firstName %> 
 							<% if (model[i].executives[j].title && model[i].executives[j].title.length > 0) { %> 
@@ -81,10 +59,10 @@
 									(<%= model[i].executives[j].position %>)
 								<% } %>
 							<% } %>
-								<% if (suggestedMails && suggestedMails.length > 0) { %>
+								<% if (model[i].executives[j].mailAddresses && model[i].executives[j].mailAddresses.length > 0) { %>
 								<ul>
-									<% for (var i in suggestedMails) { %>
-										<li><a href="mailto:<%= suggestedMails[i] %>"><%= suggestedMails[i] %></a></li>
+									<% for (var k = 0; k < model[i].executives[j].mailAddresses.length; k++) { %>
+										<li><a class="<% model[i].executives[j].mailAddresses[k] == 3 ? print("text-danger") : (model[i].executives[j].mailAddresses[k] == 2 ? print("text-success") : "") %>" href="mailto:<%= model[i].executives[j].mailAddresses[k].address %>"><%= model[i].executives[j].mailAddresses[k].address %></a></li>
 									<% } %>
 								</ul>
 								<% } %>
