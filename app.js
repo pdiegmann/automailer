@@ -381,6 +381,8 @@ app.get('/dataset/:datasetid/all', function(req, res, next)	{
 app.get('/dataset/:datasetid/filter', function(req, res, next) {
 	var start = process.hrtime();
 
+	console.log(req.originalUrl);
+
 	var datasetid = req.params.datasetid;
 	var take = req.param("take", 0);
 	if (isNaN(take) || take <= 0 || take > 500) take = 500;
@@ -455,10 +457,11 @@ app.get('/dataset/:datasetid/filter', function(req, res, next) {
 });
 
 app.all('/!*', function(req, res, next){
-	var url_parts = url.parse(req.url);
+	/*var url_parts = url.parse(req.url);
 	var path = url_parts.path;
 	path = path.slice(3);
-	res.redirect("/#!/" + path);
+	res.redirect("/#!/" + path);*/
+	res.redirect("/");
 });
 
 app.all('*', function(req, res, next) {

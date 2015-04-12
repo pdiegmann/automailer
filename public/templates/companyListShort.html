@@ -1,38 +1,42 @@
 <% if (model && model.length > 0) { %>
-	<tr>
-		<th></th>
-		<th>Name</th>
-		<th>Adresse</th>
-		<th class="hidden-xs hidden-sm">Erstellt</th>
-		<th>Kontakt</th>
-	</tr>
+	<thead>
+		<tr>
+			<th></th>
+			<th>Name</th>
+			<th>Adresse</th>
+			<!--<th class="hidden-xs hidden-sm">Erstellt</th>-->
+			<th>Kontakt</th>
+		</tr>
+	</thead>
+	<tbody>
 	<% for (var i in model) { %>
-	<tr>
-		<td><%= (1 + parseInt(i)) %></td> 
-		<td>
-			<a href="/!/location/<%=model[i]._id%>"><%=model[i].name %></a>
-		</td>
-		<td>
-			<% if (model[i].compiledAddress) { %>
-			<%= model[i].compiledAddress %>
-			<% } %>
-		</td>
-		<td class="hidden-xs hidden-sm">
-			<%= moment(model[i].created).format("LL") %>
-		</td>
-		<td>
-			<ul>
-				<% for (var j in model[i].executives) { %>
-					<li><%= model[i].executives[j].lastName %>, <%= model[i].executives[j].firstName %> 
-					<% if (model[i].executives[j].title && model[i].executives[j].title.length > 0 ) { %> 
-						(<%= model[i].executives[j].title %>)
-					<% } %>
-					</li>
+		<tr>
+			<td><%= ((state.currentPage - state.firstPage) * state.pageSize + parseInt(i) + 1) %></td> 
+			<td>
+				<a href="/!/location/<%=model[i]._id%>"><%=model[i].name %></a>
+			</td>
+			<td>
+				<% if (model[i].compiledAddress) { %>
+				<%= model[i].compiledAddress %>
 				<% } %>
-			</ul>
-		</td>
-	</tr>
+			</td>
+			<!--<td class="hidden-xs hidden-sm">
+				<%= moment(model[i].created).format("LL") %>
+			</td>-->
+			<td>
+				<ul>
+					<% for (var j in model[i].executives) { %>
+						<li><%= model[i].executives[j].lastName %>, <%= model[i].executives[j].firstName %> 
+						<% if (model[i].executives[j].title && model[i].executives[j].title.length > 0 ) { %> 
+							(<%= model[i].executives[j].title %>)
+						<% } %>
+						</li>
+					<% } %>
+				</ul>
+			</td>
+		</tr>
 	<% } %>
+	</tbody>
 <% } else { %>
 	<div>
 		<h1>:-(</h1>

@@ -1,0 +1,86 @@
+<% if (model) { %>
+<!-- prev page -->
+<% if (model.hasPreviousPage()) { %> 
+<li>
+	<a href="#" data-gotopage="<%= model.state.firstPage %>" aria-label="First">
+		<span aria-hidden="true">&laquo;</span>
+	</a>
+</li>
+<li>
+	<a href="#" data-gotopage="<%= model.state.currentPage - 1 %>" aria-label="Previous">
+		<span aria-hidden="true">&lsaquo;</span>
+	</a>
+</li>
+<% } else { %>
+<li class="disabled">
+	<a href="#" aria-label="First">
+		<span aria-hidden="true">&laquo;</span>
+	</a>
+</li>
+<li class="disabled">
+	<a href="#" aria-label="Previous">
+		<span aria-hidden="true">&lsaquo;</span>
+	</a>
+</li>
+<% } %>
+
+<!--  page numbers -->
+<% for (
+		var i = (model.state.firstPage < model.state.currentPage - surroundingPages &&  model.state.currentPage - surroundingPages > model.state.firstPage ? model.state.currentPage - surroundingPages : model.state.firstPage); 
+		i < model.state.totalPages + model.state.firstPage && i <= model.state.currentPage + surroundingPages;
+		i++) { %>
+	<% if (model.state.firstPage < model.state.currentPage - surroundingPages && i == model.state.currentPage - surroundingPages) { %>
+	<li><a href="#">...</a></li>
+	<% } %>
+	<% if (i == model.state.currentPage) { %>
+	<li class="active" data-gotopage="<%= i %>"><a href="#"><%= (i + (model.state.firstPage > 0 ? 0 : 1)) %></a></li>
+	<% } else { %>
+	<li data-gotopage="<%= i %>"><a href="#"><%= (i + (model.state.firstPage > 0 ? 0 : 1)) %></a></li>
+	<% } %>
+	<% if (i == model.state.currentPage + surroundingPages) { %>
+	<li><a href="#">...</a></li>
+	<% } %>
+<% } %>
+
+<!-- next page -->
+<% if (model.hasNextPage()) { %> 
+<li>
+	<a href="#" data-gotopage="<%= model.state.currentPage + 1 %>" aria-label="Next">
+		<span aria-hidden="true">&rsaquo;</span>
+	</a>
+</li>
+<li>
+	<a href="#" data-gotopage="<%= model.state.lastPage %>" aria-label="Last">
+		<span aria-hidden="true">&raquo;</span>
+	</a>
+</li>
+<% } else { %>
+<li class="disabled">
+	<a href="#" class="disabled" aria-label="Next">
+		<span aria-hidden="true">&rsaquo;</span>
+	</a>
+</li>
+<li class="disabled">
+	<a href="#" class="disabled" aria-label="Last">
+		<span aria-hidden="true">&raquo;</span>
+	</a>
+</li>
+<% } %>
+<% } else { %>
+<li class="disabled">
+	<a href="#" aria-label="First">
+		<span aria-hidden="true">&laquo;</span>
+	</a>
+</li>
+<li class="disabled">
+	<a href="#" aria-label="Previous">
+		<span aria-hidden="true">&laquo;</span>
+	</a>
+</li>
+<li class="disabled"><a href="#">...</a></li>
+<li class="disabled">
+	<a href="#" aria-label="Next">
+		<span aria-hidden="true">&raquo;</span>
+	</a>
+</li>
+<% } %>

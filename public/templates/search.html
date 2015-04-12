@@ -1,29 +1,15 @@
-<div class="row">
+<div class="row" style="padding-left: 1em;">
 	<h3>Starte hier deine Suche!</h3>
-	<p>Du kannst in die Suchleiste (oben!) einfach Stichwörter, Ortsnamen oder Koordinaten angeben und natürlich alles verfeinern (links!).<br /> Solltest du deine Locations hier nicht finden, dann <a href="/!/+location">füge sie doch hinzu</a> - aber nicht vergessen: erst <a href="/!/login">anmelden</a> oder <a href="/!/register">registrieren</a>.</p>
+	<p>Nutze die Seitenleiste um die Suche anzupassen.</p>
 </div>
 
 <hr id="beforeMapDivider" />
 
-<div class="row hidden-xs hidden-sm" style="position:relative;display:none">
-	<div class="col-md-12 col-xs-12 col-sm-12" style="margin: 0px 0px 15px -15px !important;">
-		<button class="btn btn-default btn-sm" id="increaseMapSizeInset">Karte vergrößern</button>
-		<div id="mapContainerMedium"></div>
-	</div>
-</div>
-
 <div class="row">
-	<div class="col-sm-4">
-		<h4 style="padding-top:0;margin-top:0;">Suche verfeinern</h4>
+	<div class="col-xs-3 col-sm-3 col-md-2 col-lg-2">
+		<h4 style="padding-top:0;margin-top:0;">Verfeinern</h4>
 
-		<div class="col-xs-4 col-sm-5 col-md-5">
-			<ul class="nav nav-tabs tabs-left">
-	          <li style="margin-left:-15px !important;" class="active"><a href="#address" data-toggle="tab">Addresse</a></li>
-	          <li style="margin-left:-15px !important;"><a href="#coordinates" data-toggle="tab">Koordinaten</a></li>
-	          <li style="margin-left:-15px !important;"><a href="#metadata" data-toggle="tab">Metadaten</a></li>
-	        </ul>
-	    </div>
-	    <div class="col-xs-offset-4 col-sm-offset-5 col-md-offset-5">
+	    <div>
 			<form class="form" id="search_details" action="#">
 				<div class="tab-content">
 					<div class="tab-pane fade in active" id="address">
@@ -43,45 +29,6 @@
 							<input class="form-control" type="text" name="address[country]" placeholder="Land" />
 						</div>
 					</div>
-					<div class="tab-pane fade" id="coordinates">
-						<div class="form-group form-group-sm">
-			                <input class="form-control" type="text" name="location[lat]" placeholder="Latitude" />
-		                </div>
-		                <div class="form-group form-group-sm">
-							<input class="form-control" type="text" name="location[lng]" placeholder="Longitude" />
-						</div>
-						<div class="form-group form-group-sm">
-				            <select class="form-control" name="radius">
-				            	<option value="0.5">500m</option>
-								<option value="1">1km</option>
-								<option value="5" selected>5km</option>
-								<option value="10">10km</option>
-								<option value="25">25km</option>
-								<option value="50">50km</option>
-							</select>
-						</div>
-					</div>
-					<div class="tab-pane fade" id="metadata">
-					    <div class="form-group form-group-sm">
-							<input class="form-control" type="text" name="keywords" placeholder="Stichwörter" />
-						</div>
-						<div class="form-group form-group-sm">
-							<input class="form-control" type="text" name="description" placeholder="Beschreibung" />
-						</div>
-						<!--<div class="form-group form-group-sm">
-							<select class="form-control">
-								<optgroup label="Industrie">
-									<option>Anlagen</option>
-									<option>Maschinen</option>
-								</optgroup>
-								<optgroup label="Architektur">
-									<option>Stadt</option>
-									<option>Land</option>
-								</optgroup>
-								<option>Natur</option>
-							</select>
-						</div>-->
-					</div>
 				</div>
 				<div class="form-group form-group-sm">
 					<hr/>
@@ -95,11 +42,11 @@
 			</form>
 		</div>  
 	</div>
-	<div class="col-sm-8">
+	<div class="col-xs-9 col-sm-9 col-md-10 col-lg-10">
 		<div id="info"></div>
-		<!--<hr/>-->
+		<nav><ul class="pagination"></ul></nav>
 		<table class="table table-striped table-hover results" id="searchResults">
 		</table>
-		<a href="/!/results" id="loadMore" class="btn hide btn-default btn-block">Weitere laden...</a>
+		<nav><ul class="pagination"></ul></nav>
 	</div>
 </div>

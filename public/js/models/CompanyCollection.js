@@ -2,24 +2,20 @@ define(['models/Company'], function(Company) {
 	var CompanyCollection = Backbone.PageableCollection.extend({
 		model: Company,
 		url: '/dataset/' + $('#dataset-selector').val() + '/filter',
-		parse: function (resp) {
-			console.log(resp.duration);
-			console.log(resp.total);
-			console.log(resp.results.length);
-			if (resp.results && resp.duration && !isNaN(resp.duration)) this.duration = resp.duration;
-			if (resp.results && resp.total && !isNaN(resp.total)) this.state.totalRecords = resp.total;
-
-	        return resp.results ? resp.results : resp;
-	    },
+	    parseRecords: function (resp, options) {
+          return resp.results ? resp.results : resp;
+        },
+	    parseState: function (resp, queryParams, state, options) {
+	      if (resp.results && resp.duration && !isNaN(resp.duration)) this.duration = resp.duration;
+          return { totalRecords: resp.total };
+        },
 		state: {
-    		firstPage: 0,
-    		totalRecords: 0,
     		pageSize: 25
     	},
 		queryParams: {
-			currentPage: "page",
+			currentPage: null,
 			pageSize: "take",
-			skip: function () { return this.state.currentPage * this.state.pageSize; }
+			skip: function () { return (this.state.currentPage - this.state.firstPage) * this.state.pageSize; }
 		},
 		setDatasetId: function(datasetid) {
 			this.url = '/dataset/' + datasetid + '/filter';
