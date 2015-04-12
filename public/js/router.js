@@ -27,7 +27,9 @@ define(["views/index", "views/uploadCSV", "views/search", "views/notFound", "vie
 			}
 			this.currentView = view;
 			this.currentView.render();
-			try { $("select").select2(); } catch(e) {}
+			try { $("select").select2({
+				width: 150
+			}); } catch(e) {}
 			try { $('.carousel').carousel(); } catch(e) {}
 		},
 		index: function() {

@@ -67,6 +67,28 @@ app.get('/datasets/all', function(req, res, next) {
 	});
 });
 
+app.delete('/dataset/:datasetid', function(req, res, next) {
+	var datasetId = req.params.datasetid;
+	if (datasetId && datasetId.length > 0) {
+		PersonModel.find({"dataset": datasetId}).remove().exec(function(err) {
+			if (err) {
+				logger.error(err);
+				return res.send(500);
+			}
+			CompanyModel.find({"dataset": datasetId}).remove().exec(function(err) {
+				if (err) {
+					logger.error(err);
+					return res.send(500);
+				}
+				return res.send(200);
+			});
+		});
+	}
+	else {
+		return res.send(404);
+	}
+});
+
 app.put('/dataset/:datasetid/upload', function(req, res, next) {
 	var file = req.files.file;
 	var datasetId = req.params.datasetid;
@@ -386,7 +408,7 @@ function stringArrayToRegexArray(strArray) {
 	if (segmentsLength <= 0) return [];
 	for (var i in segments) {
 		if (!segments[i] || segments[i].trim().length <= 0) continue;
-		regexes.push(new RegExp(".*" + segments[i].trim() + ".*", "i"));
+		regexes.push(new RegExp(".*" + segments[i].trim() + ".*"));
 	}
 	return regexes;
 }
@@ -499,10 +521,6 @@ app.get('/dataset/:datasetid/filter', function(req, res, next) {
 			queryCompany = { dataset: datasetid, executives: { $in: personIds }, $or: orQueriesCompany}
 		else
 			queryCompany = { dataset: datasetid, executives: { $in: personIds }}
-
-		var _queryCompany = queryCompany;
-		delete _queryCompany.executives;
-		console.log(_queryCompany);
 
 		CompanyModel.count(queryCompany, function(err, count) {
 			CompanyModel.find(queryCompany, { "raw": 0, "__v": 0 })

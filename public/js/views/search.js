@@ -47,15 +47,7 @@ define(["Underscore", "text!templates/search.html", "text!templates/companyListS
 			$.extend(this.collection.queryParams,params);
 
 			this.collection.getFirstPage().done(function() {
-				if (that.collection.state.totalRecords == 0) {
-					$('#info').html("Keine Ergebnisse gefunden!");
-				}
-				else if (that.collection.state.totalRecords == 1) {
-					$('#info').html("Ein Ergebnis in " + (that.collection.duration / 1000).toFixed(2) + "s gefunden.");
-				}
-				else {
-					$('#info').html(that.collection.state.totalRecords + " Ergebnisse in " + (that.collection.duration / 1000).toFixed(2) + "s gefunden.");
-				}
+				that.doneFetchingPage();
 			});
 
 			this.triggerCount++;
@@ -65,9 +57,24 @@ define(["Underscore", "text!templates/search.html", "text!templates/companyListS
 			if (!collection)
 				collection = this.collection;
 
+			var departements = $("input[name='executive[departement]']").val();
+			var departementSegments = departements.split(',');
+			var departementRegexStr = "";
+			for (var i in departementSegments) {
+				if (!departementSegments[i] || departementSegments[i].length <= 0) continue;
+				if (departementRegexStr.length > 0) departementRegexStr += "|";
+				departementRegexStr += ".\*" + departementSegments[i].trim() + ".\*";
+			}
+
 			var t = _.template(companyListShortTemplate)({
                 "model": collection.toJSON(),
-                "state": collection.state
+                "state": collection.state,
+                "mailSuggestions": function(person) {
+                	return ["ABC"];
+                },
+                "departementRegex": new RegExp(departementRegexStr),
+                "positionRegex": null,
+                "locationRegex": null
             });
 
 			$('.results').html(t);
@@ -87,6 +94,22 @@ define(["Underscore", "text!templates/search.html", "text!templates/companyListS
 			$('ul.pagination').html(t);
 		},
 
+		doneFetchingPage: function() {
+			$('html, body').animate({
+				scrollTop: $("#info").offset().top - $('#mainNavBar').outerHeight(true)
+			}, 'fast');
+
+			if (this.collection.state.totalRecords == 0) {
+				$('#info').html("Keine Ergebnisse gefunden!");
+			}
+			else if (this.collection.state.totalRecords == 1) {
+				$('#info').html("Ein Ergebnis in " + (this.collection.duration / 1000).toFixed(2) + "s gefunden.");
+			}
+			else {
+				$('#info').html(this.collection.state.totalRecords + " Ergebnisse in " + (this.collection.duration / 1000).toFixed(2) + "s gefunden.");
+			}
+		},
+
 		gotoPage: function(e) {
 			e.preventDefault();
 			var $e = $(e.target);
@@ -94,16 +117,9 @@ define(["Underscore", "text!templates/search.html", "text!templates/companyListS
 
 			var page = $e.data("gotopage");
 			if (this.collection && page) {
+				var that = this;
 				this.collection.getPage(page).done(function() {
-					if (that.collection.state.totalRecords == 0) {
-						$('#info').html("Keine Ergebnisse gefunden!");
-					}
-					else if (that.collection.state.totalRecords == 1) {
-						$('#info').html("Ein Ergebnis in " + (that.collection.duration / 1000).toFixed(2) + "s gefunden.");
-					}
-					else {
-						$('#info').html(that.collection.state.totalRecords + " Ergebnisse in " + (that.collection.duration / 1000).toFixed(2) + "s gefunden.");
-					}
+					that.doneFetchingPage();
 				});
 			}
 
