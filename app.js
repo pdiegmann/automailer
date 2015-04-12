@@ -378,6 +378,32 @@ app.get('/dataset/:datasetid/all', function(req, res, next)	{
 	});
 });
 
+function stringArrayToRegexArray(strArray) {
+	if (!strArray) return [];
+	var segments = strArray.split(",");
+	var regexes = [];
+	var segmentsLength = segments.length;
+	if (segmentsLength <= 0) return [];
+	for (var i in segments) {
+		if (!segments[i] || segments[i].trim().length <= 0) continue;
+		regexes.push(new RegExp(".*" + segments[i].trim() + ".*", "i"));
+	}
+	return regexes;
+}
+
+function stringArrayToNumberArray(strArray) {
+	if (!strArray) return [];
+	var segments = strArray.split(",");
+	var numbers = [];
+	var segmentsLength = segments.length;
+	if (segmentsLength <= 0) return [];
+	for (var i in segments) {
+		if (!segments[i] || segments[i].trim().length <= 0) continue;
+		numbers.push(parseInt(segments[i].trim()));
+	}
+	return numbers;
+}
+
 app.get('/dataset/:datasetid/filter', function(req, res, next) {
 	var start = process.hrtime();
 
@@ -391,21 +417,12 @@ app.get('/dataset/:datasetid/filter', function(req, res, next) {
 	if (isNaN(skip) || skip < 0) skip = 0;
 	skip = parseInt(skip);
 
-	var departement = req.param("departement", "");
-	var departementSegments = departement.split(",");
-	var departements = [];
-	for (var i in departementSegments) {
-		if (!departementSegments[i] || departementSegments[i].length <= 0) continue;
-		departements.push(new RegExp(".*" + departementSegments[i] + ".*", "i"));
-	}
+	var executive = req.param("executive", { departement: "", position: "" });
+	var company = req.param("company", { name: "", employees: { gt: -1, lt: -1 }, branch: { USSIC: -1, NACE: -1 } });
 
-	var position = req.param("position", "");
-	var positionSegments = position.split(",");
-	var positions = [];
-	for (var i in positionSegments) {
-		if (!positionSegments[i] || positionSegments[i].length <= 0) continue;
-		positions.push(new RegExp(".*" + positionSegments[i] + ".*", "i"));
-	}
+	var departements = stringArrayToRegexArray(executive.departement);
+	var positions = stringArrayToRegexArray(executive.position);
+	var locations = stringArrayToRegexArray(executive.location);
 
 	var orQueries = [];
 	if (departements && departements.length > 0) {
@@ -413,6 +430,9 @@ app.get('/dataset/:datasetid/filter', function(req, res, next) {
 	}
 	if (positions && positions.length > 0) {
 		orQueries.push({ "positions": { $in : positions } });
+	}
+	if (positions && positions.length > 0) {
+		orQueries.push({ "location": { $in : positions } });
 	}
 
 	var query;
@@ -422,6 +442,8 @@ app.get('/dataset/:datasetid/filter', function(req, res, next) {
 	else {
 		query = { dataset: datasetid };
 	}
+
+	console.log(query);
 
 	PersonModel.find(query, { raw: 0, title: 0, firstName: 0, lastName: 0, location: 0, departement: 0, position: 0, created: 0, updated: 0, failedMailAddresses: 0, succeededMailAddresses: 0,  telephone: 0, company: 0, active: 0, dataset: 0, "__v": 0 }, function (err, personIds) {
 		if (err) {
@@ -434,8 +456,56 @@ app.get('/dataset/:datasetid/filter', function(req, res, next) {
 
 		console.log("skip: " + skip + " take: " + take);
 
-		CompanyModel.count({ dataset: datasetid, executives: { $in: personIds }}, function(err, count) {
-			CompanyModel.find({ dataset: datasetid, executives: { $in: personIds }}, { "raw": 0, "__v": 0 })
+		var companyNames = stringArrayToRegexArray(company.name);
+		var employeesGT;
+		var employeesLT;
+		if (company.employees) {
+			if (company.employees.gt && !isNaN(company.employees.gt))
+				employeesGT = parseInt(company.employees.gt);
+			if (company.employees.lt && !isNaN(company.employees.lt))
+				employeesLT = parseInt(company.employees.lt);
+		}
+		var branchesNACE;
+		var branchesUSSIC;
+		if (company.branch) {
+			branchesNACE = stringArrayToNumberArray(company.branch.NACE);
+			branchesUSSIC = stringArrayToNumberArray(company.branch.USSIC);
+		}
+
+		var orQueriesCompany = [];
+		if (companyNames && companyNames.length > 0) {
+			orQueriesCompany.push({ "name": { $in : companyNames } });
+		} 
+		if (employeesGT && !isNaN(employeesGT) && employeesLT && !isNaN(employeesLT)) {
+			orQueriesCompany.push({ "employees": { $gte: employeesGT, $lte: employeesLT } });
+		}
+		else {
+			if (employeesGT && !isNaN(employeesGT)) {
+				orQueriesCompany.push({ "employees": { $gte: employeesGT } });
+			} 
+			else if (employeesLT && !isNaN(employeesLT)) {
+				orQueriesCompany.push({ "employees": { $lte: employeesLT } });
+			} 
+		}
+		if (branchesNACE && branchesNACE.length > 0) {
+			orQueriesCompany.push({ "branch.NACE": { $in : branchesNACE } });
+		} 
+		if (branchesUSSIC && branchesUSSIC.length > 0) {
+			orQueriesCompany.push({ "branch.USSIC": { $in : branchesUSSIC } });
+		} 
+
+		var queryCompany;
+		if (orQueriesCompany.length > 0) 
+			queryCompany = { dataset: datasetid, executives: { $in: personIds }, $or: orQueriesCompany}
+		else
+			queryCompany = { dataset: datasetid, executives: { $in: personIds }}
+
+		var _queryCompany = queryCompany;
+		delete _queryCompany.executives;
+		console.log(_queryCompany);
+
+		CompanyModel.count(queryCompany, function(err, count) {
+			CompanyModel.find(queryCompany, { "raw": 0, "__v": 0 })
 			.populate("executives", "-raw -__v")
 			.limit(take)
 			.skip(skip)

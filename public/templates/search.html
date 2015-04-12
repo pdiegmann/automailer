@@ -11,24 +11,29 @@
 
 	    <div>
 			<form class="form" id="search_details" action="#">
-				<div class="tab-content">
-					<div class="tab-pane fade in active" id="address">
-						<div class="form-group form-group-sm">
-							<input class="form-control" type="text" name="address[name]" placeholder="Name" />
-						</div>
-						<div class="form-group form-group-sm">
-							<input class="form-control" type="text" name="address[street]" placeholder="Straße" />
-						</div>
-						<div class="form-group form-group-sm">
-							<input class="form-control" type="text" name="address[zip]" placeholder="PLZ" />
-						</div>
-						<div class="form-group form-group-sm">
-							<input class="form-control" type="text" name="address[city]" placeholder="Stadt" />
-						</div>
-						<div class="form-group form-group-sm">
-							<input class="form-control" type="text" name="address[country]" placeholder="Land" />
-						</div>
-					</div>
+				<div class="form-group form-group-sm">
+					<input class="form-control" type="text" name="company[name]" placeholder="Firmenname" />
+				</div>
+				<div class="form-group form-group-sm">
+					<input class="form-control" type="text" name="company[employees[gt]" placeholder="Angestellte (>=)" />
+				</div>
+				<div class="form-group form-group-sm">
+					<input class="form-control" type="text" name="company[employees[lt]" placeholder="Angestellte (<=)" />
+				</div>
+				<div class="form-group form-group-sm">
+					<input class="form-control" type="text" name="company[branch[NACE]" placeholder="Branche (NACE)" />
+				</div>
+				<div class="form-group form-group-sm">
+					<input class="form-control" type="text" name="company[branch[USSIC]" placeholder="Branche (US-SIC)" />
+				</div>
+				<div class="form-group form-group-sm">
+					<input class="form-control" type="text" name="executive[position]" placeholder="Executive-Position" />
+				</div>
+				<div class="form-group form-group-sm">
+					<input class="form-control" type="text" name="executive[departement]" placeholder="Executive-Abteilung" />
+				</div>
+				<div class="form-group form-group-sm">
+					<input class="form-control" type="text" name="executive[location]" placeholder="Executive-Ort" />
 				</div>
 				<div class="form-group form-group-sm">
 					<hr/>

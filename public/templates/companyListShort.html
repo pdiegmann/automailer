@@ -3,6 +3,7 @@
 		<tr>
 			<th></th>
 			<th>Name</th>
+			<th>Angestellte</th>
 			<th>Adresse</th>
 			<!--<th class="hidden-xs hidden-sm">Erstellt</th>-->
 			<th>Kontakt</th>
@@ -15,6 +16,7 @@
 			<td>
 				<a href="/!/location/<%=model[i]._id%>"><%=model[i].name %></a>
 			</td>
+			<td><%= model[i].employees %></td>
 			<td>
 				<% if (model[i].compiledAddress) { %>
 				<%= model[i].compiledAddress %>
