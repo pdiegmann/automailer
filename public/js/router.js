@@ -1,7 +1,6 @@
-define(["views/index", "views/uploadCSV", "views/search", "views/notFound", "views/oops", "models/Company", "models/CompanyCollection"], 
-	function(IndexView, UploadCSVView, SearchView, NotFoundView, OopsView, Company, CompanyCollection) {
+define(["views/index", "views/uploadCSV", "views/search", "views/mailtemplates", "views/mailtemplate", "views/notFound", "views/oops", "models/Company", "models/CompanyCollection", "models/MailTemplate", "models/MailTemplateCollection"], 
+	function(IndexView, UploadCSVView, SearchView, MailTemplatesView, MailTemplateView, NotFoundView, OopsView, Company, CompanyCollection, MailTemplate, MailTemplateCollection) {
 	var Router = Backbone.Router.extend({
-		permissions: {},
 		currentView: null,
 		initialize: function() {
 			this.routesHit = 0;
@@ -10,12 +9,14 @@ define(["views/index", "views/uploadCSV", "views/search", "views/notFound", "vie
 			this.bind('route', this.googleAnalytics);
 		},
 
-		permissionsMap: {'index' : ''},
-
 		routes: {
 			"!/index": "index",
 			"!/upload/csv": "uploadCSV",
 			"!/search": "search",
+			"!/mail/template": "mailTemplate",
+			"!/mail/template/:id": "mailTemplate",
+			"!/mail/templates": "mailTemplates",
+			"!/mail": "automail",
 			"!/notFound": "notFound",
 			"!/oops": "oops",
 			"*actions" : "defaultRoute"
@@ -45,6 +46,23 @@ define(["views/index", "views/uploadCSV", "views/search", "views/notFound", "vie
 			activateMenuItem('nav_search');
 			this.changeView(new SearchView());
 		},
+		automail: function() {
+			activateMenuItem('nav_mails');
+			this.changeView(new IndexView());
+		},
+		mailTemplates: function() {
+			activateMenuItem('nav_mailtemplates');
+			this.changeView(new MailTemplatesView());
+		},
+		mailTemplate: function(templateid) {
+			var model = new MailTemplate({_id:templateid, dataset: $('#dataset-selector').val()});
+			model.updateUrl();
+			var view = new MailTemplateView({model:model});
+			this.changeView(view);
+			model.fetch({success: function (model) {
+				//view.render(model);
+			}});
+		},
 		notFound: function() {
 			activateMenuItem('');
 			this.changeView(new NotFoundView());
@@ -65,6 +83,7 @@ define(["views/index", "views/uploadCSV", "views/search", "views/notFound", "vie
 			}
 		},
 		defaultRoute : function(actions) {
+			console.log(window.location.pathname);
 			activateMenuItem('nav_start');
 			this.changeView(new IndexView());
 		}
@@ -88,7 +107,6 @@ define(["views/index", "views/uploadCSV", "views/search", "views/notFound", "vie
 
 	var router = new Router();
 	router.on('denied', function(info) {
-		console.log("Denied action "+info.action+" on "+info.type + " for id "+info.id+" (path "+info.path+", permissions: " + JSON.stringify(window.router.permissions, null, 2) + ")");
 		messaging.error("Das darfst du leider nicht - bist du schon angemeldet?");
 	});
 	window.router = router;

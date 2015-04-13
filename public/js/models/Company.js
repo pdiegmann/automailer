@@ -17,10 +17,11 @@ define(function(require) {
         this.attributes.compiledAddress = this.attributes.compiledAddress.appendWithSeparator(this.attributes.address.name, ", ");
         this.attributes.compiledAddress = this.attributes.compiledAddress.appendWithSeparator(this.attributes.address.street, ", ");
         if (!this.attributes.address.zip) this.attributes.address.zip = "";
-        this.attributes.compiledAddress = this.attributes.compiledAddress.appendWithSeparator(this.attributes.address.zip.appendWithSeparator(this.attributes.address.city, " "), ", ");
-        this.attributes.compiledAddress = this.attributes.compiledAddress.appendWithSeparator(this.attributes.address.county, ", ");
-        this.attributes.compiledAddress = this.attributes.compiledAddress.appendWithSeparator(this.attributes.address.region, ", ");
-        this.attributes.compiledAddress = this.attributes.compiledAddress.appendWithSeparator(this.attributes.address.country, ", ");
+        this.attributes.compiledAddress = this.attributes.compiledAddress.appendWithSeparator(this.attributes.address.zip.appendWithSeparator(this.attributes.address.city, " "), ", <br/>");
+        if (this.attributes.address.county && this.attributes.address.county.length > 0) this.attributes.compiledAddress = this.attributes.compiledAddress.appendWithSeparator(this.attributes.address.county, ", <br/>");
+        else this.attributes.compiledAddress = this.attributes.compiledAddress.appendWithSeparator("", ", <br/>");
+        if (this.attributes.address.region && this.attributes.address.region.length > 0) this.attributes.compiledAddress = this.attributes.compiledAddress.appendWithSeparator(this.attributes.address.region, ", ");
+        this.attributes.compiledAddress = this.attributes.compiledAddress.appendWithSeparator(this.attributes.address.country, ", <br/>");
       }
       return true;
     }

@@ -18,6 +18,7 @@ var logger = require('tracer').colorConsole();
 var dbconnection = mongoose.connect("mongodb://127.0.0.1:27017/automailer");
 var DatasetModel = require("./models/Dataset")(dbconnection);
 var MailModel = require("./models/Mail")(dbconnection);
+var MailTemplateModel = require("./models/MailTemplate")(dbconnection);
 var PersonModel = require("./models/Person")(dbconnection);
 var CompanyModel = require("./models/Company")(dbconnection);
 
@@ -294,7 +295,7 @@ function getPersonFromString(string, companyId, datasetId) {
 	person.position = segments[0].trim();
 	person.departement = person.position;
 
-	var nameSegments = segments[1].split(" ");
+	var nameSegments = segments[1].replace(" .", "").split(" ");
 	var nameSegmentsLength = nameSegments.length;
 
 	var nestedDepartementClosed = true;
@@ -370,6 +371,15 @@ app.get('/dataset/:datasetid/all', function(req, res, next)	{
 	skip = parseInt(skip);
 
 	CompanyModel.find({ dataset: datasetid }, { raw: 0, __v: 0 }).populate("executives", "-raw -__v").limit(take).skip(skip).exec(function(err, docs) {
+		if (err) {
+			logger.error(err);
+			return res.send(500);
+		}
+
+		if (!docs) {
+			return res.send(404);
+		}
+
 		return res.json(docs);
 	});
 });
@@ -450,9 +460,6 @@ function guessMailAddresses(person, company) {
 			person.mailAddresses.push({ address: mailAddress, state: 0 });
 		}
 	}
-
-	if (lastNameAlternatives.length > 0)
-		console.log(mailAddresses);
 
 	person.save(function (err) {
 		if (err) {
@@ -601,6 +608,141 @@ app.get('/dataset/:datasetid/filter', function(req, res, next) {
 			});
 		});
 	});
+});
+
+app.get('/dataset/:datasetid/mail/templates', function(req, res, next) {
+	var start = process.hrtime();
+
+	var datasetid = req.params.datasetid;
+	var take = req.param("take", 0);
+	if (isNaN(take) || take <= 0 || take > 500) take = 500;
+	take = parseInt(take);
+	var skip = req.param("skip", 0);
+	if (isNaN(skip) || skip < 0) skip = 0;
+	skip = parseInt(skip);
+
+	MailTemplateModel.count({ dataset: datasetid }, function(err, count) {
+		MailTemplateModel.find({ dataset: datasetid }, { __v: 0 }).limit(take).skip(skip).exec(function(err, docs) {
+			if (err) {
+				logger.error(err);
+				return res.send(500);
+			}
+
+			if (!docs) {
+				return res.send(404);
+			}
+
+			var elapsed = process.hrtime(start)[1] / 1000000; // divide by a million to get nano to milli
+
+			return res.json({ duration: parseFloat(Math.round(elapsed).toFixed(0)), take: take, skip: skip, count: docs.length, total: count, results: docs});
+		});
+	});
+});
+
+
+app.get('/dataset/:datasetid/mail/template/:templateid?', function(req, res, next) {
+	var templateid = req.params.templateid;
+
+	MailTemplateModel.findOne({ "_id": templateid }, { __v: 0 }).exec(function(err, doc) {
+		if (err) {
+			logger.error(err);
+			return res.send(500);
+		}
+
+		if (!doc) {
+			return templateid && templateid.length > 0 ? res.send(404) : res.json(new MailTemplateModel());
+		}
+
+		return res.json(doc);
+	});
+});
+
+app.post('/dataset/:datasetid/mail/template/:templateid?', function(req, res, next) {
+	var templateid = req.params.templateid;
+	var datasetid = req.params.datasetid;
+
+	MailTemplateModel.findOne({ "_id": templateid }, { __v: 0 }).exec(function(err, doc) {
+		if (err) {
+			logger.error(err);
+			return res.send(500);
+		}
+
+		if (!doc) {
+			doc = new MailTemplateModel();
+		}
+
+		doc.name = req.body.name;
+		doc.subject = req.body.subject;
+		doc.content = req.body.content;
+		doc.dataset = datasetid;
+
+		doc.save(function (err) {
+			if (err) {
+				logger.error(err);
+				return res.send(500);
+			}
+			return res.json({id: doc._id});
+		});
+	});
+});
+
+app.delete('/dataset/:datasetid/mail/template/:templateid', function(req, res, next) {
+	var templateid = req.params.templateid;
+
+	MailTemplateModel.findOne({ "_id": templateid }, { __v: 0 }).exec(function(err, doc) {
+		if (err) {
+			logger.error(err);
+			return res.send(500);
+		}
+
+		if (!doc) {
+			return res.send(404);
+		}
+
+		doc.remove(function(err) {
+			if (err) {
+				logger.error(err);
+				return res.send(500);
+			}
+			return res.send(200);
+		});
+	});
+});
+
+app.post('/dataset/:datasetid/mail/address/:addressid', function(req, res, next) {
+	var addressid = req.params.addressid;
+	var state = req.param("state", -1);
+
+	PersonModel.findOne({ "mailAddresses._id": addressid }).exec(function(err, doc) {
+		if (err) {
+			logger.error(err);
+			return res.send(500);
+		}
+
+		if (!doc) {
+			console.log("not found!");
+			return res.send(404);
+		}
+
+		if (!state || state < 0) {
+			return res.send(400);
+		}
+
+		for (var i in doc.mailAddresses) {
+			if (doc.mailAddresses[i]._id == addressid) {
+				doc.mailAddresses[i].state = state;
+			}
+		}
+
+		doc.save(function (err) {
+			if (err) {
+				logger.error(err);
+				return res.send(500);
+			}
+			return res.send(200);
+		});
+	});
+
 });
 
 app.all('/!*', function(req, res, next){

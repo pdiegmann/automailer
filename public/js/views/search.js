@@ -1,12 +1,13 @@
-define(["Underscore", "text!templates/search.html", "text!templates/companyListShort.html", "text!templates/pagination.html", "views/companyShort", "models/Company", "models/CompanyCollection"], 
-	function(_, searchTemplate, companyListShortTemplate, paginationTemplate, CompanyShortView, Company, CompanyCollection) {
+define(["Underscore", "text!templates/search.html", "text!templates/companyListShort.html", "text!templates/pagination.html", "models/Company", "models/CompanyCollection"], 
+	function(_, searchTemplate, companyListShortTemplate, paginationTemplate, Company, CompanyCollection) {
 	var searchView = Backbone.View.extend({
 		el: $('#content'),
 		triggerCount: 0,
 		collection: new CompanyCollection(),
 
 		events: {
-			'click [data-gotoPage]': 'gotoPage'
+			'click [data-gotoPage]': 'gotoPage',
+			'click .setmailaddressstate': 'setMailAddressState'
 		},
 
 		initialize: function() {
@@ -141,6 +142,55 @@ define(["Underscore", "text!templates/search.html", "text!templates/companyListS
 			}
 
 			return false;
+		},
+
+		setMailAddressState: function(e) {
+			e.preventDefault();
+			var $e = $(e.target);
+			if (!$e.data("addressid")) $e = $e.parent();
+			if (!$e.data("addressid")) $e = $e.parent();
+
+			var addressid = $e.data("addressid");
+			var state = $e.data("state");
+			// 0 == untried, 1 == in progress, 2 == successfull, 3 == failed
+
+			if (addressid && !isNaN(state)) {
+				$e.addClass("disabled");
+				$e.siblings("a[data-state]").addClass("disabled");
+
+				var $siblings = $e.siblings("span");
+				$siblings.removeClass("text-success");
+				$siblings.removeClass("text-info");
+				$siblings.removeClass("text-warning");
+				$siblings.removeClass("text-danger");
+
+				switch (state) {
+					case 0: {
+						break;
+					}
+					case 1: {
+						$siblings.addClass("text-info");
+						break;
+					}
+					case 2: {
+						$siblings.addClass("text-success");
+						break;
+					}
+					case 3: {
+						$siblings.addClass("text-danger");
+						break;
+					}
+					default: break;
+				}
+
+				// /dataset/:datasetid/mail/address/:addressid
+				$.post("/dataset/" + $('#dataset-selector').val() + "/mail/address/" + addressid, { state: state }, function(res) {
+					$e.removeClass("disabled");
+					$e.siblings("a[data-state]").removeClass("disabled");
+					$e.addClass("disabled");
+					//$e.siblings("a[data-state='" + state + "'][data-addressid='" + addressid + "']").addClass("disabled");
+				});
+			}
 		},
 
 		hideLoading: function() {

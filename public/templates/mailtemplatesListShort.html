@@ -1,0 +1,28 @@
+<% if (model && model.length > 0) { %>
+	<thead>
+		<tr>
+			<th></th>
+			<th>Name</th>
+			<th>Betreff</th>
+			<th>Inhalt</th>
+			<th></th>
+		</tr>
+	</thead>
+	<tbody>
+	<% for (var i in model) { %>
+		<tr>
+			<td><%= ((state.currentPage - state.firstPage) * state.pageSize + parseInt(i) + 1) %></td> 
+			<td><%= model[i].name %></td>
+			<td><%= model[i].subject %></td>
+			<td><%= model[i].content %></td>
+			<td><a href="/!/mail/template/<%= model[i]._id %>" class="btn btn-primary">Bearbeiten</a>
+		</tr>
+	<% } %>
+	</tbody>
+<% } else { %>
+	<div>
+		<h1>:-(</h1>
+		<br/>
+		Leider haben wir nichts gefunden!
+	</div>
+<% } %>

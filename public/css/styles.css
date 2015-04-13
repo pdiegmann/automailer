@@ -11,6 +11,7 @@
   filter: alpha(opacity=70);
   white-space: nowrap;
   text-align: center;
+  z-index: 5;
 }
 #loadingOverlay:before {
     content: "";

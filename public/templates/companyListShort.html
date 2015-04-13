@@ -60,9 +60,18 @@
 								<% } %>
 							<% } %>
 								<% if (model[i].executives[j].mailAddresses && model[i].executives[j].mailAddresses.length > 0) { %>
-								<ul>
+								<ul style="list-style-type: none;">
 									<% for (var k = 0; k < model[i].executives[j].mailAddresses.length; k++) { %>
-										<li><a class="<% model[i].executives[j].mailAddresses[k] == 3 ? print("text-danger") : (model[i].executives[j].mailAddresses[k] == 2 ? print("text-success") : "") %>" href="mailto:<%= model[i].executives[j].mailAddresses[k].address %>"><%= model[i].executives[j].mailAddresses[k].address %></a></li>
+										<li style="margin-left:-3em;">
+											<span class="<% model[i].executives[j].mailAddresses[k].state == 3 ? print("text-danger") : (model[i].executives[j].mailAddresses[k].state == 2 ? print("text-success") : "") %>"><%= model[i].executives[j].mailAddresses[k].address %></span>
+											<br/>
+											<a class="btn btn-default btn-sm" href="mailto:<%= model[i].executives[j].mailAddresses[k].address %>"><i class="fa fa-envelope"></i></a>
+
+											<a style="margin-left: 1.0em;" class="btn btn-default btn-sm <% model[i].executives[j].mailAddresses[k].state == 0 ? print("disabled") : print("") %> setmailaddressstate" data-addressid="<%= model[i].executives[j].mailAddresses[k]._id %>" data-state="0"><i class="fa fa-archive"></i></a>
+											<a class="btn btn-primary btn-sm <% model[i].executives[j].mailAddresses[k].state == 1 ? print("disabled") : print("") %> setmailaddressstate" data-addressid="<%= model[i].executives[j].mailAddresses[k]._id %>" data-state="1"><i class="fa fa-send"></i></a>
+											<a class="btn btn-success btn-sm <% model[i].executives[j].mailAddresses[k].state == 2 ? print("disabled") : print("") %> setmailaddressstate" data-addressid="<%= model[i].executives[j].mailAddresses[k]._id %>" data-state="2"><i class="fa fa-check"></i></a>
+											<a class="btn btn-danger btn-sm <% model[i].executives[j].mailAddresses[k].state == 3 ? print("disabled") : print("") %> setmailaddressstate" data-addressid="<%= model[i].executives[j].mailAddresses[k]._id %>" data-state="3"><i class="fa fa-warning"></i></a>
+										</li>
 									<% } %>
 								</ul>
 								<% } %>
