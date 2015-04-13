@@ -17,7 +17,9 @@ require.config({
 		Upload: "/js/libs/dropzone.min",
 		Leaflet: "https://api.tiles.mapbox.com/mapbox.js/v2.1.5/mapbox", //"/js/libs/mapbox",
 		LeafletMarkerCluster: "/js/libs/leaflet.markercluster",
-		Moment: "/js/libs/moment"
+		Moment: "/js/libs/moment",
+		summernote: "/js/libs/summernote.min",
+		summernoteDE: "/js/libs/summernote-de-DE"
 	},
 
 	shim: {
@@ -51,7 +53,13 @@ require.config({
 		"LeafletMarkerCluster": {
 			deps: ["jQuery", "Leaflet", "Moment"]
 		},
-		"FotoLocations": ["Backbone", "Bootstrap", "BackbonePageable", "Upload", "Moment"]
+		"summernote": {
+			deps: ["jQuery", "Bootstrap"]
+		},
+		"summernoteDE": {
+			deps: ["summernote"]
+		},
+		"FotoLocations": ["Backbone", "Bootstrap", "BackbonePageable", "Upload", "Moment", "summernoteDE"]
 	}
 });
 

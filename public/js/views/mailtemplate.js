@@ -18,6 +18,9 @@ define(["text!templates/mailtemplate.html", "models/MailTemplate"], function(mai
 				"model": this.model.toJSON()
 			}));
 
+			try { $('.summernote').summernote({ lang: "de-DE", height: 320 }); } catch(e) { console.error(e); }
+			$(".summernote").code(this.model.content);
+
 			return this;
 		},
 
