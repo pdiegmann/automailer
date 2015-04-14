@@ -7,7 +7,8 @@ define(["Underscore", "text!templates/search.html", "text!templates/companyListS
 
 		events: {
 			'click [data-gotoPage]': 'gotoPage',
-			'click .setmailaddressstate': 'setMailAddressState'
+			'click .setmailaddressstate': 'setMailAddressState',
+			'click #sendMails': 'sendMails'
 		},
 
 		initialize: function() {
@@ -33,6 +34,15 @@ define(["Underscore", "text!templates/search.html", "text!templates/companyListS
 			$('a.triggerSearch').on("click", function(event) { 
 				event.preventDefault(); 
 				that.triggerSearch();
+			});
+
+			$.get("/dataset/" + $('#dataset-selector').val() + "/mail/templates", function(res) {
+				$('#template-selector').html("<option value=\"\">-- Wählen --</option>");
+				if (res.results && res.results.length > 0) {
+					for (var i = 0; i < res.results.length; i++) {
+						$('#template-selector').append("<option value=\"" + res.results[i]._id + "\">" + res.results[i].name + "</option>");
+					}
+				}
 			});
 		},
 
@@ -115,12 +125,15 @@ define(["Underscore", "text!templates/search.html", "text!templates/companyListS
 			}, 'fast');
 
 			if (this.collection.state.totalRecords == 0) {
+				$('#sendMails').addClass("disabled");
 				$('#info').html("Keine Ergebnisse gefunden!");
 			}
 			else if (this.collection.state.totalRecords == 1) {
+				$('#sendMails').removeClass("disabled");
 				$('#info').html("Ein Ergebnis in " + (this.collection.duration / 1000).toFixed(2) + "s gefunden.");
 			}
 			else {
+				$('#sendMails').removeClass("disabled");
 				$('#info').html(this.collection.state.totalRecords + " Ergebnisse in " + (this.collection.duration / 1000).toFixed(2) + "s gefunden.");
 			}
 
@@ -191,6 +204,50 @@ define(["Underscore", "text!templates/search.html", "text!templates/companyListS
 					//$e.siblings("a[data-state='" + state + "'][data-addressid='" + addressid + "']").addClass("disabled");
 				});
 			}
+		},
+
+		sendMails: function(e) {
+			e.preventDefault();
+			var templateid = $('#template-selector').val();
+
+			if (this.collection.personCount < 1 || !templateid || templateid.length <= 0) {
+				return;
+			}	
+
+			var $e = $(e.target);
+			if ($e.data("confirmed") == undefined) $e = $e.parent();
+			if ($e.data("confirmed") == undefined) {
+				$e = $(e.target);
+				$e.data("confirmed", false);
+			}
+			var confirmed = $e.data("confirmed");
+
+        	if (confirmed == false) {
+        		if (this.collection.personCount > 1) {
+        			$e.text(this.collection.personCount + " Mails senden?");
+        		}
+        		else {
+        			$e.text("Eine Mail senden?");	
+        		}
+        		$e.removeClass("btn-danger");
+        		$e.addClass("btn-warning");
+        		$e.data("confirmed", true);
+        	}
+        	else {
+        		$e.addClass("disabled");
+        		$e.removeClass("btn-warning");
+				$e.addClass("btn-info");
+				$e.text("Sende...");
+				$e.data("confirmed", null);
+
+				var params = $('#search_details').serializeJSON();
+
+				$.post("/dataset/" + $("#dataset-selector").val() + "/mail/send/template/" + templateid, params, function(res) {
+					$e.removeClass("btn-info");
+	        		$e.addClass("btn-success");
+	        		$e.text("Alle Mails gesendet!");
+				});
+        	}
 		},
 
 		hideLoading: function() {

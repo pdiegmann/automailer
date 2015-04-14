@@ -11,6 +11,9 @@ var FlakeIdGen = require('flake-idgen')
     , intformat = require('biguint-format')
     , flakeGenerator = new FlakeIdGen;
 var logger = require('tracer').colorConsole();
+var exec = require('child_process').exec;
+
+var _ = require("underscore");
 
 /******
 	MODELS
@@ -18,6 +21,7 @@ var logger = require('tracer').colorConsole();
 var dbconnection = mongoose.connect("mongodb://127.0.0.1:27017/automailer");
 var DatasetModel = require("./models/Dataset")(dbconnection);
 var MailModel = require("./models/Mail")(dbconnection);
+var MailingListModel = require("./models/MailingList")(dbconnection);
 var MailTemplateModel = require("./models/MailTemplate")(dbconnection);
 var PersonModel = require("./models/Person")(dbconnection);
 var CompanyModel = require("./models/Company")(dbconnection);
@@ -533,7 +537,7 @@ app.get('/dataset/:datasetid/filter', function(req, res, next) {
 
 	console.log(query);
 
-	PersonModel.find(query, { raw: 0, title: 0, firstName: 0, lastName: 0, location: 0, departement: 0, position: 0, created: 0, updated: 0, failedMailAddresses: 0, succeededMailAddresses: 0,  telephone: 0, company: 0, active: 0, dataset: 0, "__v": 0 }, function (err, personIds) {
+	PersonModel.find(query, { raw: 0, title: 0, firstName: 0, lastName: 0, location: 0, departement: 0, position: 0, created: 0, updated: 0, mailAddresses: 0,  telephone: 0, company: 0, active: 0, dataset: 0, "__v": 0 }, function (err, personIds) {
 		if (err) {
 			console.error(err);
 			return res.send(500);
@@ -542,7 +546,7 @@ app.get('/dataset/:datasetid/filter', function(req, res, next) {
 		if (!personIds)
 			return res.send(500);
 
-		console.log("skip: " + skip + " take: " + take);
+		console.log("skip: " + skip + " take: " + take + " person count: " + personIds.length);
 
 		var companyNames = stringArrayToRegexArray(company.name);
 		var employeesGT;
@@ -604,7 +608,183 @@ app.get('/dataset/:datasetid/filter', function(req, res, next) {
 
 			    var elapsed = process.hrtime(start)[1] / 1000000; // divide by a million to get nano to milli
 
-				return res.json({ duration: parseFloat(Math.round(elapsed).toFixed(0)), take: take, skip: skip, count: companies.length, total: count, results: companies});
+				return res.json({ duration: parseFloat(Math.round(elapsed).toFixed(0)), take: take, skip: skip, count: companies.length, personCount: personIds.length, total: count, results: companies});
+			});
+		});
+	});
+});
+
+app.post('/dataset/:datasetid/mail/send/template/:templateid', function(req, res, next) {
+	var datasetid = req.params.datasetid;
+	var templateid = req.params.templateid;
+
+	var executive = req.param("executive", { departement: "", position: "" });
+	var company = req.param("company", { name: "", employees: { gt: -1, lt: -1 }, branch: { USSIC: -1, NACE: -1 } });
+
+	var departements = stringArrayToRegexArray(executive.departement);
+	var positions = stringArrayToRegexArray(executive.position);
+	var locations = stringArrayToRegexArray(executive.location);
+
+	var orQueries = [];
+	if (departements && departements.length > 0) {
+		orQueries.push({ "departement": { $in : departements } });
+	}
+	if (positions && positions.length > 0) {
+		orQueries.push({ "positions": { $in : positions } });
+	}
+	if (positions && positions.length > 0) {
+		orQueries.push({ "location": { $in : positions } });
+	}
+
+	var query;
+	if (orQueries.length > 0) {
+		query = { dataset: datasetid, $or: orQueries };
+	}
+	else {
+		query = { dataset: datasetid };
+	}
+
+	var personIdsToContact = [];
+
+	PersonModel.find(query, { raw: 0, title: 0, firstName: 0, lastName: 0, location: 0, departement: 0, position: 0, created: 0, updated: 0, mailAddresses: 0,  telephone: 0, company: 0, active: 0, dataset: 0, "__v": 0 }, function (err, docs) {
+		if (err) {
+			console.error(err);
+			return res.send(500);
+		}
+
+		if (!docs)
+			return res.send(500);
+
+		var personIds = [];
+		for (var i in docs) {
+			if (docs[i] && docs[i]._id && docs[i]._id.length <= 0) continue;
+			personIds.push(docs[i]._id);
+		}
+
+		var companyNames = stringArrayToRegexArray(company.name);
+		var employeesGT;
+		var employeesLT;
+		if (company.employees) {
+			if (company.employees.gt && !isNaN(company.employees.gt))
+				employeesGT = parseInt(company.employees.gt);
+			if (company.employees.lt && !isNaN(company.employees.lt))
+				employeesLT = parseInt(company.employees.lt);
+		}
+		var branchesNACE;
+		var branchesUSSIC;
+		if (company.branch) {
+			branchesNACE = stringArrayToNumberArray(company.branch.NACE);
+			branchesUSSIC = stringArrayToNumberArray(company.branch.USSIC);
+		}
+
+		var orQueriesCompany = [];
+		if (companyNames && companyNames.length > 0) {
+			orQueriesCompany.push({ "name": { $in : companyNames } });
+		} 
+		if (employeesGT && !isNaN(employeesGT) && employeesLT && !isNaN(employeesLT)) {
+			orQueriesCompany.push({ "employees": { $gte: employeesGT, $lte: employeesLT } });
+		}
+		else {
+			if (employeesGT && !isNaN(employeesGT)) {
+				orQueriesCompany.push({ "employees": { $gte: employeesGT } });
+			} 
+			else if (employeesLT && !isNaN(employeesLT)) {
+				orQueriesCompany.push({ "employees": { $lte: employeesLT } });
+			} 
+		}
+		if (branchesNACE && branchesNACE.length > 0) {
+			orQueriesCompany.push({ "branch.NACE": { $in : branchesNACE } });
+		} 
+		if (branchesUSSIC && branchesUSSIC.length > 0) {
+			orQueriesCompany.push({ "branch.USSIC": { $in : branchesUSSIC } });
+		} 
+
+		var queryCompany;
+		if (orQueriesCompany.length > 0) 
+			queryCompany = { dataset: datasetid, executives: { $in: personIds }, $or: orQueriesCompany}
+		else
+			queryCompany = { dataset: datasetid, executives: { $in: personIds }}
+
+		CompanyModel.find(queryCompany, { "raw": 0, "__v": 0 }, function(err, docs) {
+			for (var i in docs) {
+				var company = docs[i];
+				if (!company || !company.executives || company.executives.length <= 0) continue;
+				
+				for (var k = 0; k < company.executives.length; k++) {
+					var positionsToDelete = [];
+
+					for (var j = 0; j < personIds.length; j++) {
+						if ((personIds[j] + "") === company.executives[k] + "") {
+							positionsToDelete.push(j);
+							personIdsToContact.push(personIds[j]);
+							break;
+						}	
+					}
+
+					for (var j in positionsToDelete) {
+						personIds.splice(j, 1);
+					}
+				}
+			}
+
+			MailTemplateModel.findOne({ "_id": templateid }, { __v: 0 }).exec(function(err, doc) {
+				if (err) {
+					logger.error(err);
+					return res.send(500);
+				}
+
+				if (!doc) {
+					return res.send(404);
+				}
+
+				var mailingList = new MailingListModel();
+				mailingList.sendTo = personIdsToContact;
+				mailingList.dataset = datasetid;
+				mailingList.template = {
+					content: doc.content,
+					subject: doc.subject
+				};
+
+				mailingList.save(function(err) {
+					if (err) {
+						console.error(err);
+						return res.send(500);
+					}
+
+					var options = {
+						mailingListId: mailingList._id,
+						datasetId: datasetid,
+						sender: {
+							name: "",
+							address: "pdiegman@smail.uni-koeln.de",
+							smtp: {
+								server: "smtp-auth.uni-koeln.de",
+								port: 587,
+								ssl: false,
+								tls: true, // STARTTLS
+								username: "pdiegman",
+								password: "Ps06021991",
+								quota: { // S-Mail: 900 Mails / 10 Minutes according to RRZK
+									numberOfMails: 900,
+									perTimeFrame: 10 * 60 * 1000
+								}
+							}
+						}
+					}
+
+					var child = exec('node mailings.js', { env: { options: JSON.stringify(options) } });
+					child.stdout.on('data', function(data) {
+					    console.log('stdout: ' + data);
+					});
+					child.stderr.on('data', function(data) {
+					    console.log('stderr: ' + data);
+					});
+					child.on('close', function(code) {
+					    console.log('closing code: ' + code);
+					});
+
+					return res.send(200);
+				});
 			});
 		});
 	});

@@ -7,6 +7,7 @@ define(['models/Company'], function(Company) {
         },
 	    parseState: function (resp, queryParams, state, options) {
 	      if (resp.results && resp.duration && !isNaN(resp.duration)) this.duration = resp.duration;
+	      if (resp.personCount && resp.personCount && !isNaN(resp.personCount)) this.personCount = resp.personCount;
           return { totalRecords: resp.total };
         },
 		state: {
