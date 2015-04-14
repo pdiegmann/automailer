@@ -1,7 +1,7 @@
 var mongoose = require("mongoose");
 var logger = require('tracer').colorConsole();
 var email   = require("emailjs");
-
+var async = require('async');
 var _ = require("underscore");
 
 /******
@@ -55,8 +55,8 @@ console.log(JSON.stringify(sender));
 console.log(((sender.name && sender.name.length > 0) ? ("\"" + sender.name.replace(",", "\\,") + "\"") : "") + " <" + sender.address + ">");
 
 var smtpServer;
-var mailsToBeSent = 0;
-var saveInProgress = false;
+var mailsSent = 0;
+var startingSendMails = 0;
 
 function connectToSmtpServer() {
 	smtpServer = email.server.connect({
@@ -85,32 +85,27 @@ function processMailings() {
 
 		console.log(docs.length + " Mailing Lists found");
 
-		for (var i = 0; i < docs.length; i++) {
-			var mailingList = docs[i];
+		async.eachSeries(docs, function (mailingList, callback) {
 			console.log("Mailing List has " + mailingList.sendTo.length + " receivers (persons)");
-			for (var j = 0; j < mailingList.sendTo.length; j++) {
-				var receiver = mailingList.sendTo[j];
-
+			async.eachSeries(mailingList.sendTo, function (receiver, callback) {
 				console.log("Processing " + receiver.firstName + " " + receiver.lastName);
-
-				for (var k = 0; k < receiver.mailAddresses.length; k++) {
-					var mailAddress = receiver.mailAddresses[k];
-					if (mailAddress.state == 3) continue;
-
-					mailsToBeSent++;
+				async.eachSeries(receiver.mailAddresses, function (mailAddress, callback) {
+					if (mailAddress.state == 3) callback();
 
 					console.log("Preparing mail to " + mailAddress.address);
 
 					var mail = new MailModel();
+					
 					mail.body = _.template(mailingList.template.content, {
 						"sender": { name: sender.name, address: sender.address },
 						"receiver": receiver
-					});
-					
+					})();
+
 					mail.subject = _.template(mailingList.template.subject, {
 						"sender": { name: sender.name, address: sender.address },
 						"receiver": receiver
-					});
+					})();
+
 					mail.to = "mail@phildiegmann.com"; // mailAddress.address;
 					mail.from = sender.address;
 					mail.person = receiver._id;
@@ -122,13 +117,19 @@ function processMailings() {
 						}
 
 						var message = {
-						   text: mail.body, 
-						   from: (sender.name && sender.name.length > 0) ? ("\"" + sender.name.replace(",", "\\,") + "\"") : "" + " <" + mail.from + ">",
-						   to: mail.to,
-						   subject: mail.subject
+							text: mail.body.replace(/<br\s*[\/]?>/gi, "\n").replace(/<\/?[^>]+(>|$)/g, ""), 
+							from: (sender.name && sender.name.length > 0) ? ("\"" + sender.name.replace(",", "\\,") + "\"") : "" + " <" + mail.from + ">",
+							to: mail.to,
+							subject: mail.subject,
+							attachment: [
+								{ data:mail.body, alternative:true },
+							]
 						};
 
 						if (smtpServer) {
+							mailsSent++;
+
+							if (startingSendMails <= 0) startingSendMails = new Date().getTime();
 							smtpServer.send(message, function(err, message) {
 								try {
 									if (err) {
@@ -137,37 +138,54 @@ function processMailings() {
 									else {
 										console.log(message);
 										mail.sent = Date.now();
-										saveInProgress = true;
 										mail.save(function(err) {
 											if (err) {
 												console.error(err);
-											}
-
-											if (mailsToBeSent <= 0) {
-												saveInProgress = false;
-												process.exit();
 											}
 										});
 									}
 								}
 								catch (e) {
 									console.error(e);
-									saveInProgress = false;
-									mailsToBeSent--;
 								}
 							});
-						}
-						else {
-							mailsToBeSent--;
+
+							console.log("Timeout? (" + mailsSent + " / " + sender.smtp.quota.numberOfMails + " | " + sender.smtp.quota.perTimeFrame + ")");
+							if (sender.smtp.quota && sender.smtp.quota.numberOfMails && sender.smtp.quota.perTimeFrame && !isNaN(sender.smtp.quota.perTimeFrame) && !isNaN(sender.smtp.quota.numberOfMails) && sender.smtp.quota.numberOfMails > 0 && mailsSent >= sender.smtp.quota.numberOfMails) {
+								var resumingAllowed = startingSendMails + sender.smtp.quota.perTimeFrame + 2000;
+								var timeToSleep = Math.max(resumingAllowed - new Date().getTime(), 2000);
+								console.log("time to sleep: " + timeToSleep)
+
+								setTimeout(function() {
+									mailsSent = 0;
+									startingSendMails = 0;
+									callback();
+								}, timeToSleep);
+							}
+							else {
+								callback();
+							}
 						}
 					});
+				}, function (err) {
+					if (err) {
+						console.error(err);
+					}
+					callback();
+				});
+			}, function (err) {
+				if (err) {
+					console.error(err);
 				}
+				callback();
+			});
+		}, function (err) {
+			if (err) {
+				console.error(err);
 			}
-		}
 
-		if (mailsToBeSent <= 0 && !saveInProgress) {
 			process.exit();
-		}
+		});
 	});
 }
 

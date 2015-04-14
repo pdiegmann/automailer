@@ -756,14 +756,14 @@ app.post('/dataset/:datasetid/mail/send/template/:templateid', function(req, res
 						datasetId: datasetid,
 						sender: {
 							name: "",
-							address: "pdiegman@smail.uni-koeln.de",
+							address: "",
 							smtp: {
 								server: "smtp-auth.uni-koeln.de",
 								port: 587,
 								ssl: false,
 								tls: true, // STARTTLS
-								username: "pdiegman",
-								password: "Ps06021991",
+								username: "",
+								password: "",
 								quota: { // S-Mail: 900 Mails / 10 Minutes according to RRZK
 									numberOfMails: 900,
 									perTimeFrame: 10 * 60 * 1000

@@ -12,6 +12,58 @@
 					</select>
 				</div>
 			</div>
+			<div class="form-group form-group-sm">
+				<label for="mail[smtp[name]]" class="col-sm-2 control-label">Name:</label>
+				<div class="col-sm-9 col-sm-offset-1" style="margin-top: 0.33em;">
+					<input class="form-control" type="text" name="mail[name]" placeholder="Anzeigename" />
+				</div>
+			</div>
+			<div class="form-group form-group-sm">
+				<label for="mail[smtp[address]]" class="col-sm-2 control-label">Von:</label>
+				<div class="col-sm-9 col-sm-offset-1" style="margin-top: 0.33em;">
+					<input class="form-control" type="email" name="mail[address]" placeholder="E-Mail" />
+				</div>
+			</div>
+			<div class="form-group form-group-sm">
+				<label for="mail[smtp[server]]" class="col-sm-2 control-label">Server:</label>
+				<div class="col-sm-9 col-sm-offset-1" style="margin-top: 0.33em;">
+					<input class="form-control" type="text" name="mail[smtp[server]]" placeholder="SMTP-Server" />
+				</div>
+			</div>
+			<div class="form-group form-group-sm">
+				<label for="mail[smtp[port]]" class="col-sm-2 control-label">Port:</label>
+				<div class="col-sm-9 col-sm-offset-1" style="margin-top: 0.33em;">
+					<input class="form-control" type="number" name="mail[smtp[port]]" placeholder="SMTP-Port" />
+				</div>
+			</div>
+			<div class="form-group form-group-sm">
+				<label for="mail[smtp[port]]" class="col-sm-2 control-label">User:</label>
+				<div class="col-sm-9 col-sm-offset-1" style="margin-top: 0.33em;">
+					<input class="form-control" type="text" name="mail[smtp[username]]" placeholder="Benutzername" />
+				</div>
+			</div>
+			<div class="form-group form-group-sm">
+				<label for="mail[smtp[port]]" class="col-sm-2 control-label">Passwort:</label>
+				<div class="col-sm-9 col-sm-offset-1" style="margin-top: 0.33em;">
+					<input class="form-control" type="password" name="mail[smtp[password]]" placeholder="Passwort" />
+				</div>
+			</div>
+			<div class="form-group">
+				<div class="col-sm-offset-3 col-sm-3">
+					<div class="checkbox">
+						<label>
+							<input type="checkbox" name="mail[smtp[ssl]]"> SSL
+						</label>
+					</div>
+				</div>
+				<div class="col-sm-6">
+					<div class="checkbox">
+						<label>
+							<input type="checkbox" name="mail[smtp[ssl]]"> TLS
+						</label>
+					</div>
+				</div>
+			</div>
 			<div class="form-group">
 				<div class="col-sm-12">
 					<a class="btn btn-block btn-lg btn-primary disabled" id="sendMails" data-confirmed="false" style="margin-top: 0.25em;">Rundmail senden</a
