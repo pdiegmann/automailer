@@ -618,8 +618,40 @@ app.post('/dataset/:datasetid/mail/send/template/:templateid', function(req, res
 	var datasetid = req.params.datasetid;
 	var templateid = req.params.templateid;
 
-	var executive = req.param("executive", { departement: "", position: "" });
-	var company = req.param("company", { name: "", employees: { gt: -1, lt: -1 }, branch: { USSIC: -1, NACE: -1 } });
+	var mailSettings = {
+		"mailingListId": null,
+		"datasetId": datasetid,
+		"sender": {
+		    "name": "",
+		    "address": "",
+		    "smtp": {
+		        "server": "",
+		        "port": 587,
+		        "username": "",
+		        "password": "",
+		        "quota": {
+		            "numberOfMails": 900,
+		            "perTimeFrame": 10 * 60 * 1000
+		        },
+		        "ssl": false,
+		        "tls": true
+		    }
+		}
+	}
+
+	var executive = req.body.executive || { departement: "", position: "" };
+	var company = req.body.company || { name: "", employees: { gt: -1, lt: -1 }, branch: { USSIC: -1, NACE: -1 } };
+	company.employees.gt = parseInt(company.employees.gt);
+	company.employees.lt = parseInt(company.employees.lt);
+	company.branch.NACE = parseInt(company.branch.NACE);
+	company.branch.USSIC = parseInt(company.branch.USSIC);
+
+	mailSettings.sender = req.body.mail || mailSettings.sender;
+	mailSettings.sender.smtp.port = parseInt(mailSettings.sender.smtp.port);
+	mailSettings.sender.smtp.ssl = mailSettings.sender.smtp.ssl === "true" ? true : false;
+	mailSettings.sender.smtp.tls = mailSettings.sender.smtp.tls === "true" ? true : false;
+	mailSettings.sender.smtp.quota.numberOfMails = parseInt(mailSettings.sender.smtp.quota.numberOfMails);
+	mailSettings.sender.smtp.quota.perTimeFrame = parseInt(mailSettings.sender.smtp.quota.perTimeFrame);
 
 	var departements = stringArrayToRegexArray(executive.departement);
 	var positions = stringArrayToRegexArray(executive.position);
@@ -751,28 +783,9 @@ app.post('/dataset/:datasetid/mail/send/template/:templateid', function(req, res
 						return res.send(500);
 					}
 
-					var options = {
-						mailingListId: mailingList._id,
-						datasetId: datasetid,
-						sender: {
-							name: "",
-							address: "",
-							smtp: {
-								server: "smtp-auth.uni-koeln.de",
-								port: 587,
-								ssl: false,
-								tls: true, // STARTTLS
-								username: "",
-								password: "",
-								quota: { // S-Mail: 900 Mails / 10 Minutes according to RRZK
-									numberOfMails: 900,
-									perTimeFrame: 10 * 60 * 1000
-								}
-							}
-						}
-					}
+					mailSettings.mailingListId = mailingList._id;
 
-					var child = exec('node mailings.js', { env: { options: JSON.stringify(options) } });
+					var child = exec('node mailings.js', { env: { options: JSON.stringify(mailSettings) } });
 					child.stdout.on('data', function(data) {
 					    console.log('stdout: ' + data);
 					});

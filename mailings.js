@@ -56,6 +56,7 @@ console.log(((sender.name && sender.name.length > 0) ? ("\"" + sender.name.repla
 
 var smtpServer;
 var mailsSent = 0;
+var mailsFinished = 0;
 var startingSendMails = 0;
 
 function connectToSmtpServer() {
@@ -106,7 +107,7 @@ function processMailings() {
 						"receiver": receiver
 					})();
 
-					mail.to = "mail@phildiegmann.com"; // mailAddress.address;
+					mail.to = sender.address; // mailAddress.address;
 					mail.from = sender.address;
 					mail.person = receiver._id;
 					mail.dataset = mailingList.dataset;
@@ -117,12 +118,15 @@ function processMailings() {
 						}
 
 						var message = {
-							text: mail.body.replace(/<br\s*[\/]?>/gi, "\n").replace(/<\/?[^>]+(>|$)/g, ""), 
-							from: (sender.name && sender.name.length > 0) ? ("\"" + sender.name.replace(",", "\\,") + "\"") : "" + " <" + mail.from + ">",
+							text: mailAddress.address + " | " + mail.body.replace(/<br\s*[\/]?>/gi, "\n").replace(/<\/?[^>]+(>|$)/g, ""), 
+							from: (sender.name && sender.name.length > 0) ? ("\"" + sender.name.replace(",", "") + "\"") : "" + " <" + mail.from + ">",
 							to: mail.to,
 							subject: mail.subject,
 							attachment: [
-								{ data:mail.body, alternative:true },
+								{ 
+									data: mailAddress.address + " | " + mail.body, 
+									alternative: true 
+								},
 							]
 						};
 
@@ -133,14 +137,23 @@ function processMailings() {
 							smtpServer.send(message, function(err, message) {
 								try {
 									if (err) {
+										mailsFinished++;
 										console.error(err);
+										if (mailsFinished >= mailsSent) {
+											process.exit();
+										}
 									}
 									else {
 										console.log(message);
 										mail.sent = Date.now();
 										mail.save(function(err) {
+											mailsFinished++;
 											if (err) {
 												console.error(err);
+											}
+
+											if (mailsFinished >= mailsSent) {
+												process.exit();
 											}
 										});
 									}
@@ -184,7 +197,9 @@ function processMailings() {
 				console.error(err);
 			}
 
-			process.exit();
+			if (mailsFinished >= mailsSent) {
+				process.exit();
+			}
 		});
 	});
 }
