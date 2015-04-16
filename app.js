@@ -12,8 +12,8 @@ var FlakeIdGen = require('flake-idgen')
     , flakeGenerator = new FlakeIdGen;
 var logger = require('tracer').colorConsole();
 var exec = require('child_process').exec;
-var Imap = require('imap')
-var inspect = require('util').inspect;
+var Imap = require('imap');
+var MailParser = require("mailparser").MailParser;
 
 var _ = require("underscore");
 
@@ -944,6 +944,8 @@ app.post('/dataset/:datasetid/mail/address/:addressid', function(req, res, next)
 app.get('/dataset/:datasetid/mail/fetch', function(req, res, next) {
 	var datasetid = req.params.datasetid;
 
+	var mailparser = new MailParser({ streamAttachments: true });
+
 	var settings = req.param("mail");
 	settings.imap.port = parseInt(settings.imap.port);
 	settings.imap.ssl = settings.imap.ssl === "true" ? true : false;
@@ -955,42 +957,82 @@ app.get('/dataset/:datasetid/mail/fetch', function(req, res, next) {
 		password: settings.imap.password,
 		host: settings.imap.server,
 		tls: settings.imap.tls == true || settings.imap.ssl == true,
-		port: settings.imap.port,
-		debug: function(msg) { console.log(msg); }
+		port: settings.imap.port
+		//debug: function(msg) { console.log(msg); }
 	});
 
 	imap.once('ready', function() {
-		imap.openBox('INBOX', true, function(err, box) {
-			if (err) throw err;
-			var f = imap.seq.fetch('1:3', {
-				bodies: 'HEADER.FIELDS (FROM TO SUBJECT DATE)',
-				struct: true
-			});
-			f.on('message', function(msg, seqno) {
-				console.log('Message #%d', seqno);
-				var prefix = '(#' + seqno + ') ';
-				msg.on('body', function(stream, info) {
-				var buffer = '';
-					stream.on('data', function(chunk) {
-						buffer += chunk.toString('utf8');
+		imap.openBox('INBOX', false, function(err, box) {
+			if (err) {
+				console.error(err);
+				return res.send(500);
+			}
+
+			imap.search([ 'UNSEEN', ['SINCE', 'January 01, 2015'] ], function(err, results) {
+				if (err) {
+					console.error(err);
+					return res.send(500);
+				}
+
+				var f = imap.fetch(results, { bodies: '' });
+
+				f.on('message', function(msg, seqno) {
+					var prefix = '(#' + seqno + ') ';
+
+					var bodyTxt = "";
+
+					msg.on('body', function(stream, info) {
+						console.log(prefix + 'Body');
+
+						mailparser.on("end", function(mail) {
+							console.log(mail.from);
+							console.log(mail.to);
+							console.log("subject: " + mail.subject);
+							console.log("text: " + mail.text);
+							console.log("html: " + mail.html);
+							console.log(mail.headers);
+						});
+
+						stream.pipe(mailparser);
+
+						/*
+						stream.on('data', function(chunk) {
+							bodyTxt += chunk;
+						});
+
+						stream.on('end', function() {
+							console.log(prefix + bodyTxt);
+						});
+						*/
 					});
-					stream.once('end', function() {
-						console.log(prefix + 'Parsed header: %s', inspect(Imap.parseHeader(buffer)));
+					
+					msg.once('attributes', function(attrs) {
+						msg.attributes = attrs;
+					});
+					
+					msg.once('end', function() {
+						/*
+						imap.addFlags(msg.attributes.uid, ['\\Seen'], function (err) {
+							if (err) {
+								console.error(err);
+							}
+							console.log("marked as read");
+						});
+						*/
+						console.log(prefix + 'Finished');
 					});
 				});
-				msg.once('attributes', function(attrs) {
-					console.log(prefix + 'Attributes: %s', inspect(attrs, false, 8));
+				
+				f.once('error', function(err) {
+					console.log('Fetch error: ' + err);
+					return res.send(500);
 				});
-				msg.once('end', function() {
-					console.log(prefix + 'Finished');
+
+				f.once('end', function() {
+					console.log('Done fetching all messages!');
+					imap.end();
+					return res.send(200);
 				});
-			});
-			f.once('error', function(err) {
-				console.log('Fetch error: ' + err);
-			});
-			f.once('end', function() {
-				console.log('Done fetching all messages!');
-				imap.end();
 			});
 		});
 	});
