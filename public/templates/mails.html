@@ -1,0 +1,79 @@
+<div class="row" style="padding-left: 1em;">
+	<div class="col-xs-12 col-sm-12 col-md-8 col-lg-8">
+		<h3>Rufe hier deine Mails ab!</h3>
+		<p>Nutze das Panel rechts um die Zugangsdaten zu deinem IMAP-Server einzugeben.</p>
+	</div>
+	<div class="col-xs-12 col-sm-12 col-md-4 col-lg-4">
+		<form class="form-horizontal" id="mailsettings">
+			<div role="tabpanel">
+				<ul class="nav nav-tabs" role="tablist">
+					<li role="presentation" class="active"><a href="#account" aria-controls="account" role="tab" data-toggle="tab">Account</a></li>
+					<li role="presentation"><a href="#imapserver" aria-controls="smtpserver" role="tab" data-toggle="tab">IMAP</a></li>
+					<li role="presentation"><a href="#fetchmails" aria-controls="fetchmails" role="tab" data-toggle="tab">Mails abrufen</a></li>
+				</ul>
+			</div>
+
+			<div class="tab-content" style="margin-top:1.25em;">
+				<div role="tabpanel" class="tab-pane active" id="account">
+					<div class="form-group form-group-sm">
+						<label for="mail[imap][username]" class="col-sm-2 control-label">User:</label>
+						<div class="col-sm-9 col-sm-offset-1" style="margin-top: 0.33em;">
+							<input class="form-control" type="text" name="mail[imap][username]" placeholder="Benutzername" />
+						</div>
+					</div>
+					<div class="form-group form-group-sm">
+						<label for="mail[imap][password]" class="col-sm-2 control-label">Passwort:</label>
+						<div class="col-sm-9 col-sm-offset-1" style="margin-top: 0.33em;">
+							<input class="form-control" type="password" name="mail[imap][password]" placeholder="Passwort" />
+						</div>
+					</div>
+				</div>
+				<div role="tabpanel" class="tab-pane" id="imapserver">
+					<div class="form-group form-group-sm">
+						<label for="mail[imap][server]" class="col-sm-2 control-label">Server:</label>
+						<div class="col-sm-9 col-sm-offset-1" style="margin-top: 0.33em;">
+							<input class="form-control" type="text" name="mail[imap][server]" placeholder="SMTP-Server" />
+						</div>
+					</div>
+					<div class="form-group form-group-sm">
+						<label for="mail[imap][port]:number" class="col-sm-2 control-label">Port:</label>
+						<div class="col-sm-9 col-sm-offset-1" style="margin-top: 0.33em;">
+							<input class="form-control" type="number" min="0" max="99999" name="mail[imap][port]:number" placeholder="SMTP-Port" />
+						</div>
+					</div>
+					<div class="form-group">
+						<div class="col-sm-offset-3 col-sm-3">
+							<div class="checkbox">
+								<label>
+									<input type="checkbox" name="mail[imap][ssl]:boolean"> SSL
+								</label>
+							</div>
+						</div>
+						<div class="col-sm-6">
+							<div class="checkbox">
+								<label>
+									<input type="checkbox" name="mail[imap][tls]:boolean"> TLS
+								</label>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div role="tabpanel" class="tab-pane" id="fetchmails">
+					<a class="btn btn-primary btn-block btn-lg receiveMails">Mails abrufen</a>
+				</div>
+			</div>
+		</form>
+	</div>
+</div>
+
+<hr id="beforeMapDivider" />
+
+<div class="row">
+	<div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+		<div id="info"></div>
+		<nav><ul class="pagination"></ul></nav>
+		<table class="table table-striped table-hover results" id="searchResults">
+		</table>
+		<nav><ul class="pagination"></ul></nav>
+	</div>
+</div>

@@ -1,5 +1,5 @@
-define(["views/index", "views/uploadCSV", "views/search", "views/mailtemplates", "views/mailtemplate", "views/notFound", "views/oops", "models/Company", "models/CompanyCollection", "models/MailTemplate", "models/MailTemplateCollection"], 
-	function(IndexView, UploadCSVView, SearchView, MailTemplatesView, MailTemplateView, NotFoundView, OopsView, Company, CompanyCollection, MailTemplate, MailTemplateCollection) {
+define(["views/index", "views/uploadCSV", "views/search", "views/mailtemplates", "views/mailtemplate", "views/mails", "views/notFound", "views/oops", "models/Company", "models/CompanyCollection", "models/MailTemplate", "models/MailTemplateCollection"], 
+	function(IndexView, UploadCSVView, SearchView, MailTemplatesView, MailTemplateView, MailsView, NotFoundView, OopsView, Company, CompanyCollection, MailTemplate, MailTemplateCollection) {
 	var Router = Backbone.Router.extend({
 		currentView: null,
 		initialize: function() {
@@ -48,7 +48,7 @@ define(["views/index", "views/uploadCSV", "views/search", "views/mailtemplates",
 		},
 		automail: function() {
 			activateMenuItem('nav_mails');
-			this.changeView(new IndexView());
+			this.changeView(new MailsView());
 		},
 		mailTemplates: function() {
 			activateMenuItem('nav_mailtemplates');
