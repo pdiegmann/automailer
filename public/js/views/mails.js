@@ -1,13 +1,14 @@
-define(["Underscore", "text!templates/mails.html", "text!templates/mailtemplatesListShort.html", "text!templates/pagination.html", "models/Mail", "models/MailCollection"], 
+define(["Underscore", "text!templates/mails.html", "text!templates/mailsListShort.html", "text!templates/pagination.html", "models/Mail", "models/MailCollection"], 
 	function(_, mailsTemplate, mailsListShortTemplate, paginationTemplate, Mail, MailCollection) {
 	var mailtemplatesView = Backbone.View.extend({
 		el: $('#content'),
 		triggerCount: 0,
-		collection: new MailCollection({ mode: "client" }),
+		collection: new MailCollection(),
 
 		events: {
 			'click [data-gotoPage]': 'gotoPage',
-			'click .receiveMails': 'receiveMails'
+			'click .receiveMails': 'receiveMails',
+			'click .refresh': 'refresh'
 		},
 
 		initialize: function() {
@@ -30,11 +31,9 @@ define(["Underscore", "text!templates/mails.html", "text!templates/mailtemplates
 
 			this.showLoading();
 
-			/*
 			this.collection.getFirstPage().done(function() {
 				that.doneFetchingPage();
 			});
-			*/
 
 			this.triggerCount++;
 		},
@@ -43,12 +42,14 @@ define(["Underscore", "text!templates/mails.html", "text!templates/mailtemplates
 			if (!collection)
 				collection = this.collection;
 
-			var t = _.template(mailtemplatesListShortTemplate)({
+			var t = _.template(mailsListShortTemplate, {
                 "model": collection.toJSON(),
                 "state": collection.state
             });
 
 			$('.results').html(t);
+
+			$('[data-toggle="popover"]').popover({ html: true });
 
 			this.renderPagination();
 		},
@@ -100,14 +101,26 @@ define(["Underscore", "text!templates/mails.html", "text!templates/mailtemplates
 			return false;
 		},
 
-		receiveMails: function() {
-			var params = $('#mailsettings').serializeJSON({checkboxUncheckedValue:"false"});
-			this.collection.getFirstPage({ fetch: true, data: params }).done(function() {
+		refresh: function(e) {
+			e.preventDefault();
+			var that = this;
+			this.showLoading();
+			this.collection.getFirstPage().done(function() {
 				that.doneFetchingPage();
 			});
-			/*$.get("/dataset/" + $("#dataset-selector").val() + "/mail/fetch/" + templateid, params, function(res) {
-        		
-			});*/
+
+			return false;
+		},
+
+		receiveMails: function() {
+			var that = this;
+			this.showLoading();
+			var params = $('#mailsettings').serializeJSON({checkboxUncheckedValue:"false"});
+			$.get("/dataset/" + $("#dataset-selector").val() + "/mails/fetch", params, function(res) {
+        		that.collection.getFirstPage().done(function() {
+					that.doneFetchingPage();
+				});
+			});
 		},
 
 		hideLoading: function() {

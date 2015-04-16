@@ -1,7 +1,7 @@
 define(['models/Mail'], function(Mail) {
 	var MailCollection = Backbone.PageableCollection.extend({
 		model: Mail,
-		url: '/dataset/' + $('#dataset-selector').val() + '/mail/fetch',
+		url: '/dataset/' + $('#dataset-selector').val() + '/mails',
 	    parseRecords: function (resp, options) {
           return resp.results ? resp.results : resp;
         },
@@ -18,7 +18,7 @@ define(['models/Mail'], function(Mail) {
 			skip: function () { return (this.state.currentPage - this.state.firstPage) * this.state.pageSize; }
 		},
 		setDatasetId: function(datasetid) {
-			this.url = '/dataset/' + datasetid + '/mail/fetch';
+			this.url = '/dataset/' + datasetid + '/mails';
 		}
 	});
 

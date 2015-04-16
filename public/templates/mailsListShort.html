@@ -1,0 +1,46 @@
+<% if (model && model.length > 0) { %>
+	<thead>
+		<tr>
+			<th></th>
+			<th>Von</th>
+			<th>An</th>
+			<th>Datum</th>
+			<th>Antwort</th>
+			<th>Betreff</th>
+			<th>Inhalt</th>
+		</tr>
+	</thead>
+	<tbody>
+	<% for (var i in model) { %>
+		<tr>
+			<td><%= ((state.currentPage - state.firstPage) * state.pageSize + parseInt(i) + 1) %></td> 
+			<td><%= model[i].from %></td>
+			<td><%= model[i].to %></td>
+			<td>
+				<% if (model[i].responseTo) { %> 
+					<i class="fa fa-comments"></i>
+				<% } else { %>
+					<i class="fa fa-comment-o"></i>
+				<% } %>
+			</td>
+			<td>
+				<% if (model[i].received) { %> 
+					<i class="fa fa-inbox"></i> <%= model[i].received ? moment(model[i].received).calendar() : "" %>
+				<% } else if (model[i].sent) { %>
+					<i class="fa fa-paper-plane"></i> <%= model[i].sent ? moment(model[i].sent).calendar() : "" %>
+				<% } %>
+			</td>
+			<td><%= model[i].subject %></td>
+			<td>
+				<a class="btn btn-default" tabindex="9999" role="button" data-trigger="focus" data-placement="left" data-toggle="popover" title="<%= model[i].subject.replace('\"', '\\"') %>" data-content="<%= model[i].body.replace(/<br\s*[\/]?>/gi, "\n").replace(/<\/?[^>]+(>|$)/g, "").replace('\"', '\\"').replace("\n", "<br/>") %>">anzeigen</a>
+			</td>
+		</tr>
+	<% } %>
+	</tbody>
+<% } else { %>
+	<div>
+		<h1>:-(</h1>
+		<br/>
+		Leider haben wir nichts gefunden!
+	</div>
+<% } %>

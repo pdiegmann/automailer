@@ -4,9 +4,11 @@ module.exports = function(mongoose) {
 		subject: { type: String, index: true },
 		to: { type: String, index: true },
 		from: { type: String, index: true },
+		externalId: { type: String, index: true },
 		person: { type: mongoose.Schema.ObjectId, ref: 'Person', index: true },
 		sent: { type: Date },
 		received: { type: Date },
+		created: { type: Date, default: Date.now, index: true },
 		responseTo: { type: mongoose.Schema.ObjectId, ref: 'Mail', index: true },
 		dataset: { type: mongoose.Schema.ObjectId, ref: 'Dataset', index: true, required: true }
 	});
