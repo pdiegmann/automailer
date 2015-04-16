@@ -954,7 +954,7 @@ app.get('/dataset/:datasetid/mail/fetch', function(req, res, next) {
 		user: settings.imap.username,
 		password: settings.imap.password,
 		host: settings.imap.server,
-		ssl: settings.imap.ssl,
+		tls: settings.imap.tls == true || settings.imap.ssl == true,
 		port: settings.imap.port,
 		debug: function(msg) { console.log(msg); }
 	});
