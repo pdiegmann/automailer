@@ -7,6 +7,7 @@ module.exports = function(mongoose) {
 		person: { type: mongoose.Schema.ObjectId, ref: 'Person', index: true },
 		sent: { type: Date },
 		received: { type: Date },
+		responseTo: { type: mongoose.Schema.ObjectId, ref: 'Mail', index: true },
 		dataset: { type: mongoose.Schema.ObjectId, ref: 'Dataset', index: true, required: true }
 	});
 

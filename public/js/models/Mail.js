@@ -9,6 +9,9 @@ define(function(require) {
     },
     updateUrl: function() {
       this.urlRoot = '/dataset/' + (this.attributes && this.attributes.dataset ? this.attributes.dataset : "") + '/mail/'
+    },
+    parse: function(res) {
+      alert(JSON.stringify(res));
     }
   });
 

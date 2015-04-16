@@ -942,9 +942,25 @@ app.post('/dataset/:datasetid/mail/address/:addressid', function(req, res, next)
 });
 
 app.get('/dataset/:datasetid/mail/fetch', function(req, res, next) {
+	var mails = [];
+	var start = process.hrtime();
+
+	var parsingFinishedCount = 0;
+	var processingFinishedCount = 0;
+	var mailsReceivedCount = 0;
+	var allMailsReceived = false;
+
+	var checkForReturn = function(force) {
+		//console.log("processed: " + processingFinishedCount + " / " + mailsReceivedCount + " parsed: " + parsingFinishedCount + " / " + mailsReceivedCount + " all received: " + allMailsReceived + " force: " + force);
+		if ((force && force === true) || (allMailsReceived === true && parsingFinishedCount >= mailsReceivedCount && processingFinishedCount >= mailsReceivedCount)) {
+			var elapsed = process.hrtime(start)[1] / 1000000; // divide by a million to get nano to milli
+			return res.send(200);
+		}
+	};
+
 	var datasetid = req.params.datasetid;
 
-	var mailparser = new MailParser({ streamAttachments: true });
+	var mailparser = new MailParser({ streamAttachments: false });
 
 	var settings = req.param("mail");
 	settings.imap.port = parseInt(settings.imap.port);
@@ -956,9 +972,8 @@ app.get('/dataset/:datasetid/mail/fetch', function(req, res, next) {
 		user: settings.imap.username,
 		password: settings.imap.password,
 		host: settings.imap.server,
-		tls: settings.imap.tls == true || settings.imap.ssl == true,
+		tls: settings.imap.tls == true,
 		port: settings.imap.port
-		//debug: function(msg) { console.log(msg); }
 	});
 
 	imap.once('ready', function() {
@@ -977,33 +992,155 @@ app.get('/dataset/:datasetid/mail/fetch', function(req, res, next) {
 				var f = imap.fetch(results, { bodies: '' });
 
 				f.on('message', function(msg, seqno) {
+					mailsReceivedCount++;
 					var prefix = '(#' + seqno + ') ';
-
-					var bodyTxt = "";
 
 					msg.on('body', function(stream, info) {
 						console.log(prefix + 'Body');
 
 						mailparser.on("end", function(mail) {
-							console.log(mail.from);
-							console.log(mail.to);
-							console.log("subject: " + mail.subject);
-							console.log("text: " + mail.text);
-							console.log("html: " + mail.html);
-							console.log(mail.headers);
+							mail.deliveryFailed = false;
+
+							var contents = "";
+
+							for (var i = 0; i < mail.attachments.length; i++) {
+								var attachment = mail.attachments[i];
+								if (!attachment) continue;
+
+								if (attachment.contentType && attachment.contentType === "message/delivery-status") {
+									var content = attachment.content.toString();
+									var indexOfAction = content.indexOf("Action: failed");
+									if (indexOfAction >= 0 || content.indexOf("Status: 5." >= 0)) {
+										var address = "";
+										var indexOfFinalRecipient = content.indexOf("Final-Recipient:");
+										if (indexOfAction >= 0) {
+											var finalRecipientLength = "Final-Recipient:".length;
+											var failedAddress = content.substr(indexOfFinalRecipient, indexOfAction - indexOfFinalRecipient).split(";").pop().trim();
+											mail.from = {
+												name: "",
+												address: failedAddress
+											};
+										}
+										mail.deliveryFailed = true;
+										if (contents.length > 0) contents += "\n\n----\n\n";
+										contents += content;
+									}
+								}
+							}
+
+							if (mail.deliveryFailed === true) {
+								if (seqno) {
+									imap.addFlags(seqno, ['\\Seen'], function (err) {
+										if (err) {
+											console.error(err);
+										}
+										console.log("marked as read");
+									});
+								}
+							}
+
+							processingFinishedCount++;
+
+							MailModel.find({ "dataset": datasetid, "to": mail.from.address }, function (err, docs) {
+								if (err) {
+									console.error(err);
+								}
+
+								for (var j = 0; j <= docs.length; j++) {
+									var doc = docs[j];
+									console.log(doc);
+
+									var response = new MailModel();
+									response.from = mail.from.address;
+									response.to = mail.to.address;
+									response.subject = mail.subject;
+									response.received = mail.date;
+									response.dataset = datasetid;
+									if (doc) {
+										response.person = doc.person;
+										response.responseTo = doc._id;
+
+										PersonModel.find({ "dataset": datasetid, "_id": doc.person }, function(err, docs) {
+											if (err) {
+												console.error(err);
+											}
+
+											if (!docs) {
+												return;
+											}
+
+											for (var j = 0; j < docs.length; j++) {
+												var doc = docs[j];
+												if (!doc || !doc.mailAddresses) {
+													return;
+												}
+
+												for (var i = 0; i < doc.mailAddresses.length; i++) {
+													if (doc.mailAddresses[i].address === mail.from.address) {
+														doc.mailAddresses[i].state = mail.deliveryFailed === true ? 3 : 2;
+														break;
+													}
+												}
+
+												doc.save(function(err) {
+													if (err) {
+														console.error(err);
+													}
+												});
+											}
+										});
+									}
+									else {
+										PersonModel.find({ "dataset": datasetid, "mailAddresses.address": mail.from.address }, function(err, docs) {
+											if (err) {
+												console.error(err);
+											}
+
+											if (!docs) {
+												return;
+											}
+
+											for (var j = 0; j < docs.length; j++) {
+												var doc = docs[j];
+												if (!doc || !doc.mailAddresses) {
+													return;
+												}
+
+												for (var i = 0; i < doc.mailAddresses.length; i++) {
+													if (doc.mailAddresses[i].address === mail.from.address) {
+														doc.mailAddresses[i].state = mail.deliveryFailed === true ? 3 : 2;
+														response.person = doc.person;
+														response.save(function(err) {
+															if (err) {
+																console.error(err);
+															}
+														});
+														break;
+													}
+												}
+
+												doc.save(function(err) {
+													if (err) {
+														console.error(err);
+													}
+												});
+											}
+										});
+									}
+									response.body = contents;
+
+									response.save(function(err) {
+										if (err) {
+											console.error(err);
+										}
+
+										checkForReturn();
+									});
+								}
+							});
 						});
 
 						stream.pipe(mailparser);
-
-						/*
-						stream.on('data', function(chunk) {
-							bodyTxt += chunk;
-						});
-
-						stream.on('end', function() {
-							console.log(prefix + bodyTxt);
-						});
-						*/
 					});
 					
 					msg.once('attributes', function(attrs) {
@@ -1011,15 +1148,8 @@ app.get('/dataset/:datasetid/mail/fetch', function(req, res, next) {
 					});
 					
 					msg.once('end', function() {
-						/*
-						imap.addFlags(msg.attributes.uid, ['\\Seen'], function (err) {
-							if (err) {
-								console.error(err);
-							}
-							console.log("marked as read");
-						});
-						*/
 						console.log(prefix + 'Finished');
+						parsingFinishedCount++;
 					});
 				});
 				
@@ -1031,7 +1161,8 @@ app.get('/dataset/:datasetid/mail/fetch', function(req, res, next) {
 				f.once('end', function() {
 					console.log('Done fetching all messages!');
 					imap.end();
-					return res.send(200);
+					allMailsReceived = true;
+					return checkForReturn();
 				});
 			});
 		});
@@ -1039,12 +1170,12 @@ app.get('/dataset/:datasetid/mail/fetch', function(req, res, next) {
 
 	imap.once('error', function(err) {
 		console.log(err);
-		res.send(500);
+		return res.send(500);
 	});
 
 	imap.once('end', function() {
 		console.log('Connection ended');
-		res.send(200);
+		return checkForReturn(true);
 	});
 
 	imap.connect();
