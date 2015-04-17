@@ -224,7 +224,7 @@ define(["Underscore", "text!templates/search.html", "text!templates/companyListS
 
         	if (confirmed == false) {
         		if (this.collection.personCount > 1) {
-        			$e.text(this.collection.personCount + " Mails senden?");
+        			$e.text("Mails an ca. " + this.collection.state.totalRecords + " Personen senden?");
         		}
         		else {
         			$e.text("Eine Mail senden?");	
