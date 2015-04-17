@@ -1,16 +1,17 @@
 <div class="row" style="padding-left: 1em;">
-	<div class="col-xs-12 col-sm-12 col-md-8 col-lg-8">
+	<div class="col-xs-12 col-sm-12 col-md-7 col-lg-7">
 		<h3>Starte hier deine Suche!</h3>
 		<p>Nutze die Seitenleiste um die Suche anzupassen.</p>
 	</div>
-	<div class="col-xs-12 col-sm-12 col-md-4 col-lg-4">
+	<div class="col-xs-12 col-sm-12 col-md-5 col-lg-5">
 		<form class="form-horizontal" id="mailsettings">
 			<div role="tabpanel">
 				<ul class="nav nav-tabs" role="tablist">
 					<li role="presentation" class="active"><a href="#mailaccount" aria-controls="mailaccount" role="tab" data-toggle="tab">Account</a></li>
 					<li role="presentation"><a href="#smtpserver" aria-controls="smtpserver" role="tab" data-toggle="tab">SMTP</a></li>
 					<li role="presentation"><a href="#mailquota" aria-controls="mailquota" role="tab" data-toggle="tab">Quota</a></li>
-					<li role="presentation"><a href="#mailtemplate" aria-controls="mailtemplate" role="tab" data-toggle="tab">Template</a></li>
+					<li role="presentation"><a href="#settings" aria-controls="settings" role="tab" data-toggle="tab">Einstellungen</a></li>
+					<li role="presentation"><a href="#mailtemplate" aria-controls="mailtemplate" role="tab" data-toggle="tab">Vorlage</a></li>
 				</ul>
 			</div>
 
@@ -82,6 +83,38 @@
 						<label for="mail[smtp][quota][perTimeFrame]:number" class="col-sm-2 control-label">Zeitraum:</label>
 						<div class="col-sm-9 col-sm-offset-1" style="margin-top: 0.33em;">
 							<input class="form-control" type="number" min="-1" name="mail[smtp][quota][perTimeFrame]:number" placeholder="Sekunden" />
+						</div>
+					</div>
+				</div>
+				<div role="tabpanel" class="tab-pane" id="settings">
+					<div class="form-group form-group-sm">
+						<div class="checkbox">
+							<label>
+								<input type="checkbox" name="mail[settings][sequential]"> Sequentieller Mailversand
+							</label>
+						</div>
+					</div>
+					<hr/>
+					<div class="form-group form-group-sm">
+						<div class="checkbox">
+							<label>
+								<input type="checkbox" name="mail[settings][includeAddressStates][0]" checked> <i class="fa fa-archive"></i> Ungetestete Adressen
+							</label>
+						</div>
+						<div class="checkbox">
+							<label>
+								<input type="checkbox" name="mail[settings][includeAddressStates][1]"> <i class="fa fa-send"></i> Versandte Adressen ohne Antwort
+							</label>
+						</div>
+						<div class="checkbox">
+							<label>
+								<input type="checkbox" name="mail[settings][includeAddressStates][2]"> <i class="fa fa-check"></i> Erfolgreich getestete Adressen
+							</label>
+						</div>
+						<div class="checkbox">
+							<label>
+								<input type="checkbox" name="mail[settings][includeAddressStates][3]"> <i class="fa fa-warning"></i> Fehlgeschlagene Adressen
+							</label>
 						</div>
 					</div>
 				</div>

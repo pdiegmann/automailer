@@ -638,6 +638,10 @@ app.post('/dataset/:datasetid/mail/send/template/:templateid', function(req, res
 		        "ssl": false,
 		        "tls": true
 		    }
+		},
+		"settings": {
+			"includeAddressStates": [true, false, false, false],
+			"sequential": false
 		}
 	}
 
@@ -649,9 +653,14 @@ app.post('/dataset/:datasetid/mail/send/template/:templateid', function(req, res
 	company.branch.USSIC = parseInt(company.branch.USSIC);
 
 	mailSettings.sender = req.body.mail || mailSettings.sender;
+	mailSettings.sender.settings.sequential = mailSettings.sender.settings.sequential === "true" || mailSettings.sender.settings.sequential === "on" ? true : false;
+	for (var i = 0; i < mailSettings.sender.settings.includeAddressStates.length; i++) {
+		mailSettings.sender.settings.includeAddressStates[i] = mailSettings.sender.settings.includeAddressStates[i] === "true" || mailSettings.sender.settings.includeAddressStates[i] === "on" ? true : false;
+	}
+
 	mailSettings.sender.smtp.port = parseInt(mailSettings.sender.smtp.port);
-	mailSettings.sender.smtp.ssl = mailSettings.sender.smtp.ssl === "true" ? true : false;
-	mailSettings.sender.smtp.tls = mailSettings.sender.smtp.tls === "true" ? true : false;
+	mailSettings.sender.smtp.ssl = mailSettings.sender.smtp.ssl === "true" || mailSettings.sender.smtp.ssl === "on" ? true : false;
+	mailSettings.sender.smtp.tls = mailSettings.sender.smtp.tls === "true" || mailSettings.sender.smtp.ssl === "on" ? true : false;
 	mailSettings.sender.smtp.quota.numberOfMails = parseInt(mailSettings.sender.smtp.quota.numberOfMails);
 	mailSettings.sender.smtp.quota.perTimeFrame = parseInt(mailSettings.sender.smtp.quota.perTimeFrame);
 

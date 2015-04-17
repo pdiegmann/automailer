@@ -90,8 +90,10 @@ function processMailings() {
 			console.log("Mailing List has " + mailingList.sendTo.length + " receivers (persons)");
 			async.eachSeries(mailingList.sendTo, function (receiver, callback) {
 				console.log("Processing " + receiver.firstName + " " + receiver.lastName);
+				var countProcessedMailAddresses = 0;
 				async.eachSeries(receiver.mailAddresses, function (mailAddress, callback) {
-					if (mailAddress.state == 3) callback();
+					if (sender.settings.includeAddressStates[mailAddress.state] !== true) return callback();
+					if (sender.settings.sequential === true && countProcessedMailAddresses > 0) return callback();
 
 					console.log("Preparing mail to " + mailAddress.address);
 
@@ -163,6 +165,8 @@ function processMailings() {
 								}
 							});
 
+							countProcessedMailAddresses++;
+
 							console.log("Timeout? (" + mailsSent + " / " + sender.smtp.quota.numberOfMails + " | " + sender.smtp.quota.perTimeFrame + ")");
 							if (sender.smtp.quota && sender.smtp.quota.numberOfMails && sender.smtp.quota.perTimeFrame && !isNaN(sender.smtp.quota.perTimeFrame) && !isNaN(sender.smtp.quota.numberOfMails) && sender.smtp.quota.numberOfMails > 0 && mailsSent >= sender.smtp.quota.numberOfMails) {
 								var resumingAllowed = startingSendMails + sender.smtp.quota.perTimeFrame + 2000;
@@ -178,6 +182,9 @@ function processMailings() {
 							else {
 								callback();
 							}
+						}
+						else {
+							callback();
 						}
 					});
 				}, function (err) {
