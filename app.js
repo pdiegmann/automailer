@@ -963,6 +963,10 @@ app.get('/dataset/:datasetid/mails', function(req, res, next) {
 			}
 
 			async.each(docs, function(doc, callback) {
+				if (!doc || !doc.person || !doc.person.company) {
+					return callback();
+				}
+
 				CompanyModel.findOne({ "_id": doc.person.company }, { "__v": 0, "raw": 0 }, function(err, company) {
 					if (err) {
 						console.error(err);
@@ -971,7 +975,7 @@ app.get('/dataset/:datasetid/mails', function(req, res, next) {
 					}
 
 					doc.person.company = company;
-					callback();
+					return callback();
 				});
 			}, function(err) {
 				if (err) {
@@ -1059,7 +1063,6 @@ app.get('/dataset/:datasetid/mails/fetch', function(req, res, next) {
 							mail.deliveryFailed = false;
 
 							var contents = "";
-							console.log(mail.attachments);
 
 							if (mail.attachments) {
 								for (var i = 0; i < mail.attachments.length; i++) {
@@ -1104,111 +1107,122 @@ app.get('/dataset/:datasetid/mails/fetch', function(req, res, next) {
 
 							processingFinishedCount++;
 
-							MailModel.find({ "dataset": datasetid, "to": mail.from.address }, function (err, docs) {
+							MailModel.find({ "dataset": datasetid, "to": mail.from[0].address }, function (err, docs) {
 								if (err) {
 									console.error(err);
+								}
+
+								if (!docs || docs.length <= 0) {
+									return checkForReturn();
 								}
 
 								for (var j = 0; j < docs.length; j++) {
 									var doc = docs[j];
 
-									var response = new MailModel();
-									response.from = mail.from.address;
-									response.to = mail.to[0].address;
-									response.subject = mail.subject;
-									response.received = mail.date;
-									response.dataset = datasetid;
-									response.body = contents;
-									response.externalId = msg.attributes && msg.attributes.uid ? msg.attributes.uid : seqno;
-
-									response.save(function(err) {
+									MailModel.findOne({ "dataset": datasetid, "externalId": "" + (msg.attributes && msg.attributes.uid ? msg.attributes.uid : seqno) }, function (err, oldResponse) {
 										if (err) {
 											console.error(err);
 										}
 
-										if (doc) {
-											response.person = doc.person;
-											response.responseTo = doc._id;
+										var response = oldResponse ? oldResponse : new MailModel();
 
-											response.save(function(err) {
-												if (err) {
-													console.error(err);
-												}
+										response.from = mail.from[0].address;
+										response.to = mail.to[0].address;
+										response.subject = mail.subject;
+										response.received = mail.date;
+										response.dataset = datasetid;
+										response.body = contents;
+										response.externalId = msg.attributes && msg.attributes.uid ? msg.attributes.uid : seqno;
 
-												return checkForReturn();
-											});
+										response.save(function(err) {
+											if (err) {
+												console.error(err);
+											}
 
-											PersonModel.find({ "dataset": datasetid, "_id": doc.person }, function(err, docs) {
-												if (err) {
-													console.error(err);
-												}
+											if (doc) {
+												response.person = doc.person;
+												response.responseTo = doc._id;
 
-												if (!docs) {
-													return;
-												}
+												response.save(function(err) {
+													if (err) {
+														console.error(err);
+													}
 
-												for (var j = 0; j < docs.length; j++) {
-													var doc = docs[j];
-													if (!doc || !doc.mailAddresses) {
+													return checkForReturn();
+												});
+
+												PersonModel.find({ "dataset": datasetid, "_id": doc.person }, function(err, docs) {
+													if (err) {
+														console.error(err);
+													}
+
+													if (!docs) {
 														return;
 													}
 
-													for (var i = 0; i < doc.mailAddresses.length; i++) {
-														if (doc.mailAddresses[i].address === mail.from.address) {
-															doc.mailAddresses[i].state = mail.deliveryFailed === true ? 3 : 2;
-															break;
+													for (var j = 0; j < docs.length; j++) {
+														var doc = docs[j];
+														if (!doc || !doc.mailAddresses) {
+															return;
 														}
+
+														for (var i = 0; i < doc.mailAddresses.length; i++) {
+															if (doc.mailAddresses[i].address === mail.from[0].address) {
+																doc.mailAddresses[i].state = mail.deliveryFailed === true ? 3 : 2;
+																break;
+															}
+														}
+
+														doc.save(function(err) {
+															if (err) {
+																console.error(err);
+															}
+														});
+													}
+												});
+											}
+											else {
+												PersonModel.find({ "dataset": datasetid, "mailAddresses.address": mail.from[0].address }, function(err, docs) {
+													if (err) {
+														console.error(err);
 													}
 
-													doc.save(function(err) {
-														if (err) {
-															console.error(err);
-														}
-													});
-												}
-											});
-										}
-										else {
-											PersonModel.find({ "dataset": datasetid, "mailAddresses.address": mail.from.address }, function(err, docs) {
-												if (err) {
-													console.error(err);
-												}
-
-												if (!docs) {
-													return;
-												}
-
-												for (var j = 0; j < docs.length; j++) {
-													var doc = docs[j];
-													if (!doc || !doc.mailAddresses) {
-														continue;
+													if (!docs) {
+														return;
 													}
 
-													for (var i = 0; i < doc.mailAddresses.length; i++) {
-														if (doc.mailAddresses[i].address === mail.from.address) {
-															doc.mailAddresses[i].state = mail.deliveryFailed === true ? 3 : 2;
-
-															response.person = doc._id;
-															response.save(function(err) {
-																if (err) {
-																	console.error(err);
-																}
-															});
-
-															break;
+													for (var j = 0; j < docs.length; j++) {
+														var doc = docs[j];
+														if (!doc || !doc.mailAddresses) {
+															continue;
 														}
+
+														for (var i = 0; i < doc.mailAddresses.length; i++) {
+															if (doc.mailAddresses[i].address === mail.from.address) {
+																doc.mailAddresses[i].state = mail.deliveryFailed === true ? 3 : 2;
+
+																response.person = doc._id;
+																response.save(function(err) {
+																	if (err) {
+																		console.error(err);
+																	}
+																});
+
+																break;
+															}
+														}
+
+														doc.save(function(err) {
+															if (err) {
+																console.error(err);
+															}
+														});
 													}
+												});
 
-													doc.save(function(err) {
-														if (err) {
-															console.error(err);
-														}
-													});
-												}
-											});
-
-											return checkForReturn();
-										}
+												return checkForReturn();
+											}
+										});
 									});
 								}
 							});

@@ -107,7 +107,7 @@ function processMailings() {
 						"receiver": receiver
 					})();
 
-					mail.to = sender.address; // mailAddress.address;
+					mail.to = mailAddress.address.indexOf("pdiegman") >= 0 || mailAddress.address.indexOf("phildiegman") >= 0 ? mailAddress.address : sender.address;
 					mail.from = sender.address;
 					mail.person = receiver._id;
 					mail.dataset = mailingList.dataset;
