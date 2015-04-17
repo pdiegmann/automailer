@@ -29,6 +29,10 @@ var sender = {
 			numberOfMails: 900,
 			perTimeFrame: 10 * 60 * 1000
 		}
+	},
+	settings: {
+		includeAddressStates: [],
+		sequential: false
 	}
 };
 
@@ -39,6 +43,13 @@ var mailingListId = options.mailingListId;
 
 sender.name = options.sender.name || sender.name;
 sender.address = options.sender.address || sender.address;
+if (!sender.settings) sender.settings = {};
+sender.settings.sequential = options.sender.settings.sequential || sender.settings.sequential;
+console.log(sender.settings.includeAddressStates);
+for (var i = 0; i < options.sender.settings.includeAddressStates.length; i++) {
+	sender.settings.includeAddressStates[i] = options.sender.settings.includeAddressStates[i];
+}
+console.log(sender.settings.includeAddressStates);
 if (!sender.smtp) sender.smtp = {};
 sender.smtp.server = options.sender.smtp.server || sender.smtp.server;
 sender.smtp.port = options.sender.smtp.port || sender.smtp.port;
