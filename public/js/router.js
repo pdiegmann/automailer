@@ -1,5 +1,5 @@
-define(["views/index", "views/uploadCSV", "views/search", "views/mailtemplates", "views/mailtemplate", "views/mails", "views/notFound", "views/oops", "models/Company", "models/CompanyCollection", "models/MailTemplate", "models/MailTemplateCollection"], 
-	function(IndexView, UploadCSVView, SearchView, MailTemplatesView, MailTemplateView, MailsView, NotFoundView, OopsView, Company, CompanyCollection, MailTemplate, MailTemplateCollection) {
+define(["views/index", "views/uploadCSV", "views/search", "views/mailtemplates", "views/mailtemplate", "views/mails", "views/maillists", "views/notFound", "views/oops", "models/Company", "models/CompanyCollection", "models/MailTemplate", "models/MailTemplateCollection"], 
+	function(IndexView, UploadCSVView, SearchView, MailTemplatesView, MailTemplateView, MailsView, MailListsView, NotFoundView, OopsView, Company, CompanyCollection, MailTemplate, MailTemplateCollection) {
 	var Router = Backbone.Router.extend({
 		currentView: null,
 		initialize: function() {
@@ -16,6 +16,7 @@ define(["views/index", "views/uploadCSV", "views/search", "views/mailtemplates",
 			"!/mail/template": "mailTemplate",
 			"!/mail/template/:id": "mailTemplate",
 			"!/mail/templates": "mailTemplates",
+			"!/mail/lists": "mailLists",
 			"!/mail": "automail",
 			"!/notFound": "notFound",
 			"!/oops": "oops",
@@ -49,6 +50,10 @@ define(["views/index", "views/uploadCSV", "views/search", "views/mailtemplates",
 		automail: function() {
 			activateMenuItem('nav_mails');
 			this.changeView(new MailsView());
+		},
+		mailLists: function() {
+			activateMenuItem('nav_maillists');
+			this.changeView(new MailListsView());
 		},
 		mailTemplates: function() {
 			activateMenuItem('nav_mailtemplates');

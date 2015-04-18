@@ -1,0 +1,118 @@
+<div class="row" style="padding-left: 1em;">
+	<div class="col-xs-12 col-sm-12 col-md-7 col-lg-7">
+		<h3>Sieh deine Maillisten an!</h3>
+		<p>Nutze das Panel rechts um die Zugangsdaten zu deinem SMTP-Server einzugeben.</p>
+		<a class="btn btn-primary refresh">aktualisieren</a>
+	</div>
+	<div class="col-xs-12 col-sm-12 col-md-5 col-lg-5">
+		<form class="form-horizontal" id="mailsettings">
+			<div role="tabpanel">
+				<ul class="nav nav-tabs" role="tablist">
+					<li role="presentation" class="active"><a href="#mailaccount" aria-controls="mailaccount" role="tab" data-toggle="tab">Account</a></li>
+					<li role="presentation"><a href="#smtpserver" aria-controls="smtpserver" role="tab" data-toggle="tab">SMTP</a></li>
+					<li role="presentation"><a href="#mailquota" aria-controls="mailquota" role="tab" data-toggle="tab">Quota</a></li>
+					<li role="presentation"><a href="#mailtemplate" aria-controls="mailtemplate" role="tab" data-toggle="tab">Vorlage</a></li>
+				</ul>
+			</div>
+
+			<div class="tab-content" style="margin-top:1.25em;">
+				<div role="tabpanel" class="tab-pane active" id="mailaccount">
+					<div class="form-group form-group-sm">
+						<label for="mail[name]" class="col-sm-2 control-label">Name:</label>
+						<div class="col-sm-9 col-sm-offset-1" style="margin-top: 0.33em;">
+							<input class="form-control" type="text" name="mail[name]" placeholder="Anzeigename" />
+						</div>
+					</div>
+					<div class="form-group form-group-sm">
+						<label for="mail[address]" class="col-sm-2 control-label">Von:</label>
+						<div class="col-sm-9 col-sm-offset-1" style="margin-top: 0.33em;">
+							<input class="form-control" type="email" name="mail[address]" placeholder="E-Mail" />
+						</div>
+					</div>
+				</div>
+				<div role="tabpanel" class="tab-pane" id="smtpserver">
+					<div class="form-group form-group-sm">
+						<label for="mail[smtp][server]" class="col-sm-2 control-label">Server:</label>
+						<div class="col-sm-9 col-sm-offset-1" style="margin-top: 0.33em;">
+							<input class="form-control" type="text" name="mail[smtp][server]" placeholder="SMTP-Server" />
+						</div>
+					</div>
+					<div class="form-group form-group-sm">
+						<label for="mail[smtp][port]:number" class="col-sm-2 control-label">Port:</label>
+						<div class="col-sm-9 col-sm-offset-1" style="margin-top: 0.33em;">
+							<input class="form-control" type="number" min="0" max="99999" name="mail[smtp][port]:number" placeholder="SMTP-Port" />
+						</div>
+					</div>
+					<div class="form-group form-group-sm">
+						<label for="mail[smtp][username]" class="col-sm-2 control-label">User:</label>
+						<div class="col-sm-9 col-sm-offset-1" style="margin-top: 0.33em;">
+							<input class="form-control" type="text" name="mail[smtp][username]" placeholder="Benutzername" />
+						</div>
+					</div>
+					<div class="form-group form-group-sm">
+						<label for="mail[smtp][password]" class="col-sm-2 control-label">Passwort:</label>
+						<div class="col-sm-9 col-sm-offset-1" style="margin-top: 0.33em;">
+							<input class="form-control" type="password" name="mail[smtp][password]" placeholder="Passwort" />
+						</div>
+					</div>
+					<div class="form-group">
+						<div class="col-sm-offset-3 col-sm-3">
+							<div class="checkbox">
+								<label>
+									<input type="checkbox" name="mail[smtp][ssl]:boolean"> SSL
+								</label>
+							</div>
+						</div>
+						<div class="col-sm-6">
+							<div class="checkbox">
+								<label>
+									<input type="checkbox" name="mail[smtp][tls]:boolean"> TLS
+								</label>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div role="tabpanel" class="tab-pane" id="mailquota">
+					<div class="form-group form-group-sm">
+						<label for="mail[smtp][quota][numberOfMails]:number" class="col-sm-2 control-label">Mails:</label>
+						<div class="col-sm-9 col-sm-offset-1" style="margin-top: 0.33em;">
+							<input class="form-control" type="number" min="-1" name="mail[smtp][quota][numberOfMails]:number" placeholder="Maximale Anzahl Mails" />
+						</div>
+					</div>
+					<div class="form-group form-group-sm">
+						<label for="mail[smtp][quota][perTimeFrame]:number" class="col-sm-2 control-label">Zeitraum:</label>
+						<div class="col-sm-9 col-sm-offset-1" style="margin-top: 0.33em;">
+							<input class="form-control" type="number" min="-1" name="mail[smtp][quota][perTimeFrame]:number" placeholder="Sekunden" />
+						</div>
+					</div>
+				</div>
+				<div role="tabpanel" class="tab-pane" id="mailtemplate">
+					<div class="form-group" style="margin-top: 1.25em;">
+						<label for="template-selector" class="col-sm-2 control-label">Template:</label>
+						<div class="col-sm-9 col-sm-offset-1" style="margin-top: 0.33em;">
+							<select class="form-control" id="template-selector" name="template-selector">
+							</select>
+						</div>
+					</div>
+					<div class="form-group">
+						<div class="col-sm-12">
+							<a class="btn btn-block btn-lg btn-primary disabled" id="sendMails" data-confirmed="false" style="margin-top: 0.25em;">Rundmail senden</a>
+						</div>
+					</div>
+				</div>
+			</div>
+		</form>
+	</div>
+</div>
+
+<hr id="beforeMapDivider" />
+
+<div class="row">
+	<div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+		<div id="info"></div>
+		<nav><ul class="pagination"></ul></nav>
+		<table class="table table-striped table-hover results" id="searchResults">
+		</table>
+		<nav><ul class="pagination"></ul></nav>
+	</div>
+</div>

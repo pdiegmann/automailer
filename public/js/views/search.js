@@ -224,10 +224,10 @@ define(["Underscore", "text!templates/search.html", "text!templates/companyListS
 
         	if (confirmed == false) {
         		if (this.collection.personCount > 1) {
-        			$e.text("Mails an ca. " + this.collection.state.totalRecords + " Personen senden?");
+        			$e.html("Mails an ca. <span class=\"badge\">" + this.collection.state.totalRecords + "</span> Personen senden?");
         		}
         		else {
-        			$e.text("Eine Mail senden?");	
+        			$e.html("<span class=\"badge\">1</span> Mail senden?");	
         		}
         		$e.removeClass("btn-danger");
         		$e.addClass("btn-warning");

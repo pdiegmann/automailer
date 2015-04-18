@@ -1,0 +1,50 @@
+<% if (model && model.length > 0) { %>
+	<thead>
+		<tr>
+			<th></th>
+			<th>Erstellt</th>
+			<th>Empfänger</th>
+			<th>Gesendet</th>
+			<th>Ungesendet</th>
+			<th>Antworten</th>
+			<th>Template</th>
+		</tr>
+	</thead>
+	<tbody>
+	<% for (var i in model) { %>
+		<tr>
+			<td><%= ((state.currentPage - state.firstPage) * state.pageSize + parseInt(i) + 1) %></td> 
+			<td>
+				<% if (model[i].created) { %> 
+					<%= model[i].created ? moment(model[i].created).calendar() : "" %>
+				<% } %>
+			</td>
+			<td>
+				<%= (model[i].sendTo ? model[i].sendTo.length : "0") %>				
+			</td>
+			<td>
+				<%= (model[i].sentMails ? model[i].sentMails.length : "0") %>
+			</td>
+			<td>
+				<% if (model[i].sendTo && model[i].sentMails && model[i].sendTo.length - model[i].sentMails.length > 0) { %> 
+					<a class="btn btn-warning sendUndsend" data-maillistid="<%= model[i]._id %>"><span class="badge"><%= model[i].sendTo.length - model[i].sentMails.length %></span> Nachsenden</a>
+				<% } %>
+			</td>
+			<td>
+				<%= (model[i].answers ? model[i].answers.length : "0") %>
+			</td>
+			<td>
+				<% console.log(model[i].template); if (model[i].template && model[i].template.subject && model[i].template.content) { %>
+				<a class="btn btn-default" tabindex="9999" role="button" data-trigger="focus" data-placement="left" data-toggle="popover" title="<%= model[i].template.subject.replace(/<br\s*[\/]?>/gi, "\n").replace(/<\/?[^>]+(>|$)/g, "").replace('\"', '\\"').replace("\n", "<br/>") %>" data-content="<%= model[i].template.content.replace(/<br\s*[\/]?>/gi, "\n").replace(/<\/?[^>]+(>|$)/g, "").replace('\"', '\\"').replace("\n", "<br/>") %>">anzeigen</a>
+				 <% } %>
+			</td>
+		</tr>
+	<% } %>
+	</tbody>
+<% } else { %>
+	<div>
+		<h1>:-(</h1>
+		<br/>
+		Leider haben wir nichts gefunden!
+	</div>
+<% } %>
