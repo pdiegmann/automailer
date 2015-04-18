@@ -18,7 +18,7 @@ define(["text!templates/uploadCSV.html", "libs/dropzone-amd-module"], function(u
 				method: "put", 
 				clickable: true, 
 				createImageThumbnails: false, 
-				acceptedFiles: "text/csv",
+				//acceptedFiles: "text/csv",
 				url: "/dataset/" + $("#dataset-selector").val() + "/upload"
 			};
 			var myDropzone = new Dropzone("#pictureUploadDropzone", settings);
