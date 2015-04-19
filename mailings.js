@@ -3,6 +3,7 @@ var logger = require('tracer').colorConsole();
 var email   = require("emailjs");
 var async = require('async');
 var _ = require("underscore");
+var os = require("os");
 
 /******
 	MODELS
@@ -150,6 +151,7 @@ function processMailings() {
 								from: (sender.name && sender.name.length > 0) ? ("\"" + sender.name.replace(",", "") + "\"") : "" + " <" + mail.from + ">",
 								to: mail.to,
 								subject: mail.subject,
+								"message-id": "<" + mail._id + "." + mailingListId + "." + datasetId + "@" + os.hostname() +">", 
 								attachment: [
 									{ 
 										data: mailAddress.address + " | " + mail.body, 

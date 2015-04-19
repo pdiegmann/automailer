@@ -1231,7 +1231,7 @@ app.get('/dataset/:datasetid/mails/fetch', function(req, res, next) {
 					return res.send(200);
 				}
 
-				var f = imap.fetch(results, { bodies: '' });
+				var f = imap.fetch(results, { bodies: '', markSeen: true });
 
 				f.on('message', function(msg, seqno) {
 					mailsReceivedCount++;
@@ -1242,6 +1242,29 @@ app.get('/dataset/:datasetid/mails/fetch', function(req, res, next) {
 
 						mailparser.on("end", function(mail) {
 							mail.deliveryFailed = false;
+
+							var replyTo = mail.headers["inReplyTo"];
+							if (!replyTo) replyTo = mail.headers["InReplyTo"];
+							if (!replyTo) replyTo = mail.headers["inreplyto"];
+							if (!replyTo) replyTo = mail.headers["in-reply-to"];
+							if (!replyTo) replyTo = mail.headers["In-Reply-To"];
+							if (!replyTo) replyTo = mail.headers["in-Reply-To"];
+
+							var mailIdCandidate;
+							var maillistIdCandidate;
+							var datasetIdCandidate;
+							var indexOfAt = replyTo ? replyTo.indexOf("@") : -1;
+							
+							if (replyTo && (replyTo.match(/\./g) || []).length >= 2 && indexOfAt >= 0) {
+								var ids = replyTo.substr(0, indexOfAt).split(".");
+								mailIdCandidate = ids[0].replace(/[^a-z0-9]/gi, "");
+								maillistIdCandidate = ids[1].replace(/[^a-z0-9]/gi, "");
+								datasetIdCandidate = ids[2].replace(/[^a-z0-9]/gi, "");
+
+								if (!mailIdCandidate || mailIdCandidate.length <= 0) mailIdCandidate = undefined;
+								if (!maillistIdCandidate || maillistIdCandidate.length <= 0) maillistIdCandidate = undefined;
+								if (!datasetIdCandidate || datasetIdCandidate.length <= 0) datasetIdCandidate = undefined;
+							}
 
 							var contents = "";
 
@@ -1269,170 +1292,164 @@ app.get('/dataset/:datasetid/mails/fetch', function(req, res, next) {
 											contents += content;
 										}
 									}
+									else {
+										var content = attachment.content.toString();
+									}
 								}
 							}
 
-							if (mail.deliveryFailed === true) {
-								if (seqno) {
-									imapCMDsRunning++;
-									imap.addFlags(seqno, ['\\Seen'], function (err) {
-										imapCMDsRunning--;
-										if (err) {
-											console.error(err);
-										}
-										console.log(prefix + "marked as read");
-										return checkForReturn();
-									});
-								}
+							/*
+							if (seqno) {
+								imapCMDsRunning++;
+								imap.addFlags(seqno, ['\\Seen'], function (err) {
+									imapCMDsRunning--;
+									if (err) {
+										console.error(err);
+									}
+									console.log(prefix + "marked as read");
+									return checkForReturn();
+								});
 							}
+							*/
 
 							processingFinishedCount++;
 
-							MailModel.find({ "dataset": datasetid, "to": mail.from[0].address }, function (err, docs) {
+							MailModel.findOne({ "dataset": datasetid, "_id": mailIdCandidate }, function (err, originalMail) {
 								if (err) {
 									console.error(err);
 								}
 
-								if (!docs || docs.length <= 0) {
+								if (!originalMail) {
 									return checkForReturn();
 								}
 
-								for (var j = 0; j < docs.length; j++) {
-									var doc = docs[j];
+								MailModel.findOne({ "dataset": datasetid, "externalId": "" + (msg.attributes && msg.attributes.uid ? msg.attributes.uid : seqno) }, function (err, oldResponse) {
+									if (err) {
+										console.error(err);
+									}
 
-									MailModel.findOne({ "dataset": datasetid, "externalId": "" + (msg.attributes && msg.attributes.uid ? msg.attributes.uid : seqno) }, function (err, oldResponse) {
+									var response = oldResponse ? oldResponse : new MailModel();
+
+									response.from = mail.from[0].address;
+									response.to = mail.to[0].address;
+									response.subject = mail.subject;
+									response.received = mail.date;
+									response.dataset = datasetid;
+									response.body = contents;
+									response.externalId = msg.attributes && msg.attributes.uid ? msg.attributes.uid : seqno;
+
+									response.save(function(err) {
 										if (err) {
 											console.error(err);
 										}
 
-										var response = oldResponse ? oldResponse : new MailModel();
-
-										response.from = mail.from[0].address;
-										response.to = mail.to[0].address;
-										response.subject = mail.subject;
-										response.received = mail.date;
-										response.dataset = datasetid;
-										response.body = contents;
-										response.externalId = msg.attributes && msg.attributes.uid ? msg.attributes.uid : seqno;
-
-										response.save(function(err) {
+										MailingListModel.findOne({ "dataset": datasetid, "_id": maillistIdCandidate }, function(err, mailingList) {
 											if (err) {
 												console.error(err);
 											}
 
-											console.log({ "dataset": datasetid, "sentMails": doc._id });
-											MailingListModel.find({ "dataset": datasetid, "sentMails": doc._id }, function(err, mailingLists) {
+											if (!mailingList) {
+												console.log("no mailing list");
+												return;
+											}
+
+											if (!mailingList.answers) mailingList.answers = [];
+											var found = false;
+											for (var k = 0; k < mailingList.answers.length; k++) {
+												if (mailingList.answers[k] + "" == response._id + "") {
+													found = true;
+													break;
+												}
+											}
+
+											if (!found) {
+												mailingList.answers.push(response._id);
+												mailingList.save(function(err) {
+													if (err) {
+														console.error(err);
+													}
+												});
+											}
+										});
+
+										if (originalMail) {
+											response.person = originalMail.person;
+											response.responseTo = originalMail._id;
+
+											response.save(function(err) {
 												if (err) {
 													console.error(err);
 												}
 
-												if (!mailingLists) {
-													console.log("no mailing lists");
+												return checkForReturn();
+											});
+
+											PersonModel.findOne({ "dataset": datasetid, "_id": originalMail.person }, function(err, person) {
+												if (err) {
+													console.error(err);
+												}
+
+												if (!person || !person.mailAddresses) {
 													return;
 												}
 
-												async.each(mailingLists, function(mailingList, callbackDeep) {
-													if (!mailingList.answers) mailingList.answers = [];
-													mailingList.answers.push(response);
-													mailingList.save(function(err) {
+												for (var i = 0; i < person.mailAddresses.length; i++) {
+													if (person.mailAddresses[i].address === mail.from[0].address) {
+														person.mailAddresses[i].state = mail.deliveryFailed === true ? 3 : 2;
+														break;
+													}
+												}
+
+												person.save(function(err) {
+													if (err) {
+														console.error(err);
+													}
+												});
+											});
+										}
+										else {
+											PersonModel.find({ "dataset": datasetid, "mailAddresses.address": mail.from[0].address }, function(err, persons) {
+												if (err) {
+													console.error(err);
+												}
+
+												if (!persons) {
+													return;
+												}
+
+												for (var j = 0; j < persons.length; j++) {
+													var person = persons[j];
+													if (!person || !person.mailAddresses) {
+														continue;
+													}
+
+													for (var i = 0; i < person.mailAddresses.length; i++) {
+														if (person.mailAddresses[i].address === mail.from.address) {
+															person.mailAddresses[i].state = mail.deliveryFailed === true ? 3 : 2;
+
+															response.person = person._id;
+															response.save(function(err) {
+																if (err) {
+																	console.error(err);
+																}
+															});
+
+															break;
+														}
+													}
+
+													person.save(function(err) {
 														if (err) {
 															console.error(err);
 														}
-														callbackDeep();
 													});
-												}, function(err) {
-													if (err) { 
-														console.error(err);
-													}
-												})
+												}
 											});
 
-											if (doc) {
-												response.person = doc.person;
-												response.responseTo = doc._id;
-
-												response.save(function(err) {
-													if (err) {
-														console.error(err);
-													}
-
-													return checkForReturn();
-												});
-
-												PersonModel.find({ "dataset": datasetid, "_id": doc.person }, function(err, docs) {
-													if (err) {
-														console.error(err);
-													}
-
-													if (!docs) {
-														return;
-													}
-
-													for (var j = 0; j < docs.length; j++) {
-														var doc = docs[j];
-														if (!doc || !doc.mailAddresses) {
-															return;
-														}
-
-														for (var i = 0; i < doc.mailAddresses.length; i++) {
-															if (doc.mailAddresses[i].address === mail.from[0].address) {
-																doc.mailAddresses[i].state = mail.deliveryFailed === true ? 3 : 2;
-																break;
-															}
-														}
-
-														doc.save(function(err) {
-															if (err) {
-																console.error(err);
-															}
-														});
-													}
-												});
-											}
-											else {
-												PersonModel.find({ "dataset": datasetid, "mailAddresses.address": mail.from[0].address }, function(err, docs) {
-													if (err) {
-														console.error(err);
-													}
-
-													if (!docs) {
-														return;
-													}
-
-													for (var j = 0; j < docs.length; j++) {
-														var doc = docs[j];
-														if (!doc || !doc.mailAddresses) {
-															continue;
-														}
-
-														for (var i = 0; i < doc.mailAddresses.length; i++) {
-															if (doc.mailAddresses[i].address === mail.from.address) {
-																doc.mailAddresses[i].state = mail.deliveryFailed === true ? 3 : 2;
-
-																response.person = doc._id;
-																response.save(function(err) {
-																	if (err) {
-																		console.error(err);
-																	}
-																});
-
-																break;
-															}
-														}
-
-														doc.save(function(err) {
-															if (err) {
-																console.error(err);
-															}
-														});
-													}
-												});
-
-												return checkForReturn();
-											}
-										});
+											return checkForReturn();
+										}
 									});
-								}
+								});
 							});
 						});
 
@@ -1476,6 +1493,10 @@ app.get('/dataset/:datasetid/mails/fetch', function(req, res, next) {
 
 	imap.connect();
 });
+
+function processResponse(response, originalMail, mailingList) {
+
+}
 
 app.all('/!*', function(req, res, next){
 	/*var url_parts = url.parse(req.url);
