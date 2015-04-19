@@ -98,117 +98,153 @@ function processMailings() {
 		console.log("Mailing List has " + mailingList.sendTo.length + " receivers (persons)");
 		async.eachSeries(mailingList.sendTo, function (receiver, callback) {
 			console.log("Processing " + receiver.firstName + " " + receiver.lastName);
-			var countProcessedMailAddresses = 0;
-			async.eachSeries(receiver.mailAddresses, function (mailAddress, callback) {
-				if (sender.settings.includeAddressStates[mailAddress.state] !== true) return callback();
-				if (sender.settings.sequential === true && countProcessedMailAddresses > 0) return callback();
 
-				console.log("Preparing mail to " + mailAddress.address);
+			CompanyModel.findOne({ "dataset": datasetId, "_id": receiver.company }, function(err, company) {
+				if (err) {
+					console.error(err);
+				}
 
-				var mail = new MailModel();
-				
-				mail.body = _.template(mailingList.template.content, {
-					"sender": { name: sender.name, address: sender.address },
-					"receiver": receiver
-				})();
+				if (company) {
+					receiver.company = company;
+				}
 
-				mail.subject = _.template(mailingList.template.subject, {
-					"sender": { name: sender.name, address: sender.address },
-					"receiver": receiver
-				})();
+				var countProcessedMailAddresses = 0;
+				async.eachSeries(receiver.mailAddresses, function (mailAddress, callback) {
+					if (sender.settings.includeAddressStates[mailAddress.state] !== true) return callback();
+					if (sender.settings.sequential === true && countProcessedMailAddresses > 0) return callback();
 
-				mail.to = mailAddress.address.indexOf("pdiegman") >= 0 || mailAddress.address.indexOf("phildiegman") >= 0 ? mailAddress.address : sender.address;
-				mail.from = sender.address;
-				mail.person = receiver._id;
-				mail.dataset = mailingList.dataset;
-				mail.save(function(err) {
-					if (err) {
-						console.error(err);
-						return;
-					}
+					console.log("Preparing mail to " + mailAddress.address);
 
-					if (!mailingList.sentMails) mailingList.sentMails = [];
-					mailingList.sentMails.push(mail);
+					var mail = new MailModel();
+					
+					mail.body = _.template(mailingList.template.content, {
+						"sender": { name: sender.name, address: sender.address },
+						"receiver": receiver
+					})();
 
-					mailingList.save(function(err) {
+					mail.subject = _.template(mailingList.template.subject, {
+						"sender": { name: sender.name, address: sender.address },
+						"receiver": receiver
+					})();
+
+					mail.to = mailAddress.address.indexOf("pdiegman") >= 0 || mailAddress.address.indexOf("phildiegman") >= 0 ? mailAddress.address : sender.address;
+					mail.from = sender.address;
+					mail.person = receiver._id;
+					mail.dataset = mailingList.dataset;
+					mail.save(function(err) {
 						if (err) {
 							console.error(err);
+							return;
 						}
 
-						var message = {
-							text: mailAddress.address + " | " + mail.body.replace(/<br\s*[\/]?>/gi, "\n").replace(/<\/?[^>]+(>|$)/g, ""), 
-							from: (sender.name && sender.name.length > 0) ? ("\"" + sender.name.replace(",", "") + "\"") : "" + " <" + mail.from + ">",
-							to: mail.to,
-							subject: mail.subject,
-							attachment: [
-								{ 
-									data: mailAddress.address + " | " + mail.body, 
-									alternative: true 
-								},
-							]
-						};
+						if (!mailingList.sentMails) mailingList.sentMails = [];
+						mailingList.sentMails.push(mail);
 
-						if (smtpServer) {
-							mailsSent++;
+						mailingList.save(function(err) {
+							if (err) {
+								console.error(err);
+							}
 
-							if (startingSendMails <= 0) startingSendMails = new Date().getTime();
-							smtpServer.send(message, function(err, message) {
-								try {
-									if (err) {
-										mailsFinished++;
-										console.error(err);
-										if (mailsFinished >= mailsSent) {
-											process.exit();
-										}
-									}
-									else {
-										console.log(message);
-										mail.sent = Date.now();
-										mail.save(function(err) {
+							var message = {
+								text: mailAddress.address + " | " + mail.body.replace(/<br\s*[\/]?>/gi, "\n").replace(/<\/?[^>]+(>|$)/g, ""), 
+								from: (sender.name && sender.name.length > 0) ? ("\"" + sender.name.replace(",", "") + "\"") : "" + " <" + mail.from + ">",
+								to: mail.to,
+								subject: mail.subject,
+								attachment: [
+									{ 
+										data: mailAddress.address + " | " + mail.body, 
+										alternative: true 
+									},
+								]
+							};
+
+							if (smtpServer) {
+								mailsSent++;
+
+								if (startingSendMails <= 0) startingSendMails = new Date().getTime();
+								smtpServer.send(message, function(err, message) {
+									try {
+										if (err) {
 											mailsFinished++;
-											if (err) {
-												console.error(err);
-											}
-
+											console.error(err);
 											if (mailsFinished >= mailsSent) {
 												process.exit();
 											}
-										});
+										}
+										else {
+											console.log(message);
+											mail.sent = Date.now();
+											mail.save(function(err) {
+												if (err) {
+													console.error(err);
+												}
+
+												var addressFound = false;
+												for (var i = 0; i < receiver.mailAddresses.length; i++) {
+													if (receiver.mailAddresses[i].address === mailAddress.address) {
+														if (receiver.mailAddresses[i].state === 0) {
+															addressFound = true;
+															receiver.mailAddresses[i].state = 1;
+															receiver.save(function(err) {
+																if (err) {
+																	console.error(err);
+																}
+
+																mailsFinished++;
+
+																if (mailsFinished >= mailsSent) {
+																	process.exit();
+																}
+															})
+														}
+														break;
+													}
+												}
+
+												if (!addressFound) {
+													mailsFinished++;
+
+													if (mailsFinished >= mailsSent) {
+														process.exit();
+													}
+												}
+											});
+										}
 									}
+									catch (e) {
+										console.error(e);
+									}
+								});
+
+								countProcessedMailAddresses++;
+
+								console.log("Timeout? (" + mailsSent + " / " + sender.smtp.quota.numberOfMails + " | " + sender.smtp.quota.perTimeFrame + ")");
+								if (sender.smtp.quota && sender.smtp.quota.numberOfMails && sender.smtp.quota.perTimeFrame && !isNaN(sender.smtp.quota.perTimeFrame) && !isNaN(sender.smtp.quota.numberOfMails) && sender.smtp.quota.numberOfMails > 0 && mailsSent >= sender.smtp.quota.numberOfMails) {
+									var resumingAllowed = startingSendMails + sender.smtp.quota.perTimeFrame + 2000;
+									var timeToSleep = Math.max(resumingAllowed - new Date().getTime(), 2000);
+									console.log("time to sleep: " + timeToSleep)
+
+									setTimeout(function() {
+										mailsSent = 0;
+										startingSendMails = 0;
+										callback();
+									}, timeToSleep);
 								}
-								catch (e) {
-									console.error(e);
-								}
-							});
-
-							countProcessedMailAddresses++;
-
-							console.log("Timeout? (" + mailsSent + " / " + sender.smtp.quota.numberOfMails + " | " + sender.smtp.quota.perTimeFrame + ")");
-							if (sender.smtp.quota && sender.smtp.quota.numberOfMails && sender.smtp.quota.perTimeFrame && !isNaN(sender.smtp.quota.perTimeFrame) && !isNaN(sender.smtp.quota.numberOfMails) && sender.smtp.quota.numberOfMails > 0 && mailsSent >= sender.smtp.quota.numberOfMails) {
-								var resumingAllowed = startingSendMails + sender.smtp.quota.perTimeFrame + 2000;
-								var timeToSleep = Math.max(resumingAllowed - new Date().getTime(), 2000);
-								console.log("time to sleep: " + timeToSleep)
-
-								setTimeout(function() {
-									mailsSent = 0;
-									startingSendMails = 0;
+								else {
 									callback();
-								}, timeToSleep);
+								}
 							}
 							else {
 								callback();
 							}
-						}
-						else {
-							callback();
-						}
+						});
 					});
+				}, function (err) {
+					if (err) {
+						console.error(err);
+					}
+					callback();
 				});
-			}, function (err) {
-				if (err) {
-					console.error(err);
-				}
-				callback();
 			});
 		}, function (err) {
 			if (err) {

@@ -65,12 +65,12 @@
 										<li style="margin-left:-3em;">
 											<span class="<% model[i].executives[j].mailAddresses[k].state == 3 ? print("text-danger") : (model[i].executives[j].mailAddresses[k].state == 2 ? print("text-success") : "") %>"><%= model[i].executives[j].mailAddresses[k].address %></span>
 											<br/>
-											<a class="btn btn-default btn-sm" href="mailto:<%= model[i].executives[j].mailAddresses[k].address %>"><i class="fa fa-envelope"></i></a>
+											<a class="btn btn-default btn-sm" data-toggle="tooltip" title="Direkte Mail senden" href="mailto:<%= model[i].executives[j].mailAddresses[k].address %>"><i class="fa fa-envelope"></i></a>
 
-											<a style="margin-left: 1.0em;" class="btn btn-default btn-sm <% model[i].executives[j].mailAddresses[k].state == 0 ? print("disabled") : print("") %> setmailaddressstate" data-addressid="<%= model[i].executives[j].mailAddresses[k]._id %>" data-state="0"><i class="fa fa-archive"></i></a>
-											<a class="btn btn-primary btn-sm <% model[i].executives[j].mailAddresses[k].state == 1 ? print("disabled") : print("") %> setmailaddressstate" data-addressid="<%= model[i].executives[j].mailAddresses[k]._id %>" data-state="1"><i class="fa fa-send"></i></a>
-											<a class="btn btn-success btn-sm <% model[i].executives[j].mailAddresses[k].state == 2 ? print("disabled") : print("") %> setmailaddressstate" data-addressid="<%= model[i].executives[j].mailAddresses[k]._id %>" data-state="2"><i class="fa fa-check"></i></a>
-											<a class="btn btn-danger btn-sm <% model[i].executives[j].mailAddresses[k].state == 3 ? print("disabled") : print("") %> setmailaddressstate" data-addressid="<%= model[i].executives[j].mailAddresses[k]._id %>" data-state="3"><i class="fa fa-warning"></i></a>
+											<a style="margin-left: 1.0em;" data-toggle="tooltip" title="Ungetestete Mail" class="btn btn-default btn-sm <% model[i].executives[j].mailAddresses[k].state == 0 ? print("disabled") : print("") %> setmailaddressstate" data-addressid="<%= model[i].executives[j].mailAddresses[k]._id %>" data-state="0"><i class="fa fa-archive"></i></a>
+											<a data-toggle="tooltip" title="Unbeantwortete Mail" class="btn btn-primary btn-sm <% model[i].executives[j].mailAddresses[k].state == 1 ? print("disabled") : print("") %> setmailaddressstate" data-addressid="<%= model[i].executives[j].mailAddresses[k]._id %>" data-state="1"><i class="fa fa-send"></i></a>
+											<a data-toggle="tooltip" title="Erfolgreiche Mail" class="btn btn-success btn-sm <% model[i].executives[j].mailAddresses[k].state == 2 ? print("disabled") : print("") %> setmailaddressstate" data-addressid="<%= model[i].executives[j].mailAddresses[k]._id %>" data-state="2"><i class="fa fa-check"></i></a>
+											<a data-toggle="tooltip" title="Fehlgeschlagene Mail" class="btn btn-danger btn-sm <% model[i].executives[j].mailAddresses[k].state == 3 ? print("disabled") : print("") %> setmailaddressstate" data-addressid="<%= model[i].executives[j].mailAddresses[k]._id %>" data-state="3"><i class="fa fa-warning"></i></a>
 										</li>
 									<% } %>
 								</ul>

@@ -14,6 +14,104 @@
   <div class="form-group">
     <label for="inputPassword3" class="col-sm-2 control-label">Inhalt</label>
     <div class="col-sm-10">
+      <a class="btn btn-default btn-md btn-block" data-toggle="collapse" href="#variableLookupTable" aria-expanded="false" aria-controls="collapseExample">Variablen zeigen / verstecken</a>
+      <table class="table table-hover collapse" id="variableLookupTable">
+        <thead>
+          <tr>
+            <th>Variable</th>
+            <th>Property</th>
+            <th>Wert</th>
+            <th>Beispiel</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td rowspan="2">sender</td>
+            <td>name</td>
+            <td>Name des Absenders</td>
+            <td>Mit freundlichen Grüßen, &lt;br/&gt; <br/>&lt;%= sender.name %&gt;</td>
+          </tr>
+          <tr>
+            <td>address</td>
+            <td>E-Mail Adresse des Absenders</td>
+            <td>Wenden Sie sich an: &lt;%= sender.address %&gt;</td>
+          </tr>
+          <tr>
+            <td rowspan="5">receiver</td>
+            <td>firstName</td>
+            <td>Vorname des Empfängers</td>
+            <td>&lt;%= receiver.firstName %&gt;</td>
+          </tr>
+          <tr>
+            <td>lastName</td>
+            <td>Nachname des Empfängers</td>
+            <td>&lt;%= receiver.lastName %&gt;</td>
+          </tr>
+          <tr>
+            <td>title</td>
+            <td>Titel (falls vorhanden) des Empfängers</td>
+            <td>&lt;%= receiver.title %&gt;</td>
+          </tr>
+          <tr>
+            <td>departement</td>
+            <td>Abteilung des Empfängers</td>
+            <td>&lt;%= receiver.departement %&gt;</td>
+          </tr>
+          <tr>
+            <td>position</td>
+            <td>Position (in dem Unternehmen) des Empfängers</td>
+            <td>&lt;%= receiver.position %&gt;</td>
+          </tr>
+          <tr>
+            <td rowspan="5">receiver.company</td>
+            <td>name</td>
+            <td>Name des Unternehmens des Empfängers</td>
+            <td>&lt;%= receiver.company.name %&gt;</td>
+          </tr>
+          <tr>
+            <td>url</td>
+            <td>URL des Unternehmens</td>
+            <td>&lt;%= receiver.company.url %&gt;</td>
+          </tr>
+          <tr>
+            <td>employees</td>
+            <td>Anzahl Angestellte (falls vorhanden) des Unternehmens</td>
+            <td>&lt;%= receiver.company.employees %&gt;</td>
+          </tr>
+          <tr>
+            <td>publisher</td>
+            <td>Datenbank aus der die Daten stammen</td>
+            <td>&lt;%= receiver.company.publisher %&gt;</td>
+          </tr>
+          <tr>
+            <td>email</td>
+            <td>Standard-E-Mail-Adresse des Unternehmens</td>
+            <td>&lt;%= receiver.company.email %&gt;</td>
+          </tr>
+          <tr>
+            <td rowspan="4">receiver.company.address</td>
+            <td>street</td>
+            <td>Straße der Unternehmensanschrift</td>
+            <td>&lt;%= receiver.company.address.street %&gt;</td>
+          </tr>
+          <tr>
+            <td>city</td>
+            <td>Stadt der Unternehmensanschrift</td>
+            <td>&lt;%= receiver.company.address.city %&gt;</td>
+          </tr>
+          <tr>
+            <td>zip</td>
+            <td>PLZ der Unternehmensanschrift</td>
+            <td>&lt;%= receivercompany.address.zip %&gt;</td>
+          </tr>
+          <tr>
+            <td>country</td>
+            <td>Land der Unternehmensanschrift</td>
+            <td>&lt;%= receiver.company.address.country %&gt;</td>
+          </tr>
+        </tbody>
+      </table>
+      <hr/>
       <textarea class="summernote" name="content"><%= model.content %></textarea>
     </div>
   </div>

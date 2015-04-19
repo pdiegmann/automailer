@@ -104,6 +104,8 @@ define(["Underscore", "text!templates/search.html", "text!templates/companyListS
 
 			$('.results').html(t);
 
+			$('[data-toggle="tooltip"]').tooltip();
+
 			this.renderPagination();
 		},
 

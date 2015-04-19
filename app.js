@@ -1188,8 +1188,9 @@ app.get('/dataset/:datasetid/mails/fetch', function(req, res, next) {
 
 	var settings = req.param("mail");
 	settings.imap.port = parseInt(settings.imap.port);
-	settings.imap.ssl = settings.imap.ssl === "true" ? true : false;
-	settings.imap.tls = settings.imap.tls === "true" ? true : false;
+	settings.imap.ssl = settings.imap.ssl === "true" || settings.imap.ssl === "on" ? true : false;
+	settings.imap.tls = settings.imap.tls === "true" || settings.imap.tls === "on" ? true : false;
+	settings.imap.unseenOnly = settings.imap.unseenOnly === "true" || settings.imap.unseenOnly === "on" ? true : false;
 
 	var imap = new Imap({
 		user: settings.imap.username,
@@ -1218,7 +1219,7 @@ app.get('/dataset/:datasetid/mails/fetch', function(req, res, next) {
 				return res.send(500);
 			}
 
-			imap.search([ 'UNSEEN', ['SINCE', 'January 01, 2015'] ], function(err, results) {
+			imap.search([ (settings.imap.unseenOnly === true ? 'UNSEEN' : 'ALL'), ['SINCE', 'January 01, 2015'] ], function(err, results) {
 				if (err) {
 					console.error(err);
 					try { imap.end(); }
