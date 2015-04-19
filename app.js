@@ -1319,6 +1319,33 @@ app.get('/dataset/:datasetid/mails/fetch', function(req, res, next) {
 												console.error(err);
 											}
 
+											console.log({ "dataset": datasetid, "sentMails": doc._id });
+											MailingListModel.find({ "dataset": datasetid, "sentMails": doc._id }, function(err, mailingLists) {
+												if (err) {
+													console.error(err);
+												}
+
+												if (!mailingLists) {
+													console.log("no mailing lists");
+													return;
+												}
+
+												async.each(mailingLists, function(mailingList, callbackDeep) {
+													if (!mailingList.answers) mailingList.answers = [];
+													mailingList.answers.push(response);
+													mailingList.save(function(err) {
+														if (err) {
+															console.error(err);
+														}
+														callbackDeep();
+													});
+												}, function(err) {
+													if (err) { 
+														console.error(err);
+													}
+												})
+											});
+
 											if (doc) {
 												response.person = doc.person;
 												response.responseTo = doc._id;

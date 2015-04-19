@@ -81,53 +81,58 @@ function connectToSmtpServer() {
 }
 
 function processMailings() {
-	MailingListModel.find({ "_id": mailingListId, dataset: datasetId, sendTo: { $not: { $size: 0 } } }, { "__v": 0 })
+	MailingListModel.findOne({ "_id": mailingListId, dataset: datasetId, sendTo: { $not: { $size: 0 } } }, { "__v": 0 })
 	.populate("sendTo", "-__v -raw")
-	.exec(function(err, docs) {
+	.exec(function(err, mailingList) {
 		if (err) {
 			console.error(err);
 			throw err;
 			return;
 		}
 
-		if (!docs || docs.length <= 0) {
-			console.log("No Mailing Lists found");
+		if (!mailingList) {
+			console.log("No Mailing List found");
 			return;
 		}
 
-		console.log(docs.length + " Mailing Lists found");
+		console.log("Mailing List has " + mailingList.sendTo.length + " receivers (persons)");
+		async.eachSeries(mailingList.sendTo, function (receiver, callback) {
+			console.log("Processing " + receiver.firstName + " " + receiver.lastName);
+			var countProcessedMailAddresses = 0;
+			async.eachSeries(receiver.mailAddresses, function (mailAddress, callback) {
+				if (sender.settings.includeAddressStates[mailAddress.state] !== true) return callback();
+				if (sender.settings.sequential === true && countProcessedMailAddresses > 0) return callback();
 
-		async.eachSeries(docs, function (mailingList, callback) {
-			console.log("Mailing List has " + mailingList.sendTo.length + " receivers (persons)");
-			async.eachSeries(mailingList.sendTo, function (receiver, callback) {
-				console.log("Processing " + receiver.firstName + " " + receiver.lastName);
-				var countProcessedMailAddresses = 0;
-				async.eachSeries(receiver.mailAddresses, function (mailAddress, callback) {
-					if (sender.settings.includeAddressStates[mailAddress.state] !== true) return callback();
-					if (sender.settings.sequential === true && countProcessedMailAddresses > 0) return callback();
+				console.log("Preparing mail to " + mailAddress.address);
 
-					console.log("Preparing mail to " + mailAddress.address);
+				var mail = new MailModel();
+				
+				mail.body = _.template(mailingList.template.content, {
+					"sender": { name: sender.name, address: sender.address },
+					"receiver": receiver
+				})();
 
-					var mail = new MailModel();
-					
-					mail.body = _.template(mailingList.template.content, {
-						"sender": { name: sender.name, address: sender.address },
-						"receiver": receiver
-					})();
+				mail.subject = _.template(mailingList.template.subject, {
+					"sender": { name: sender.name, address: sender.address },
+					"receiver": receiver
+				})();
 
-					mail.subject = _.template(mailingList.template.subject, {
-						"sender": { name: sender.name, address: sender.address },
-						"receiver": receiver
-					})();
+				mail.to = mailAddress.address.indexOf("pdiegman") >= 0 || mailAddress.address.indexOf("phildiegman") >= 0 ? mailAddress.address : sender.address;
+				mail.from = sender.address;
+				mail.person = receiver._id;
+				mail.dataset = mailingList.dataset;
+				mail.save(function(err) {
+					if (err) {
+						console.error(err);
+						return;
+					}
 
-					mail.to = mailAddress.address.indexOf("pdiegman") >= 0 || mailAddress.address.indexOf("phildiegman") >= 0 ? mailAddress.address : sender.address;
-					mail.from = sender.address;
-					mail.person = receiver._id;
-					mail.dataset = mailingList.dataset;
-					mail.save(function(err) {
+					if (!mailingList.sentMails) mailingList.sentMails = [];
+					mailingList.sentMails.push(mail);
+
+					mailingList.save(function(err) {
 						if (err) {
 							console.error(err);
-							return;
 						}
 
 						var message = {
@@ -198,11 +203,6 @@ function processMailings() {
 							callback();
 						}
 					});
-				}, function (err) {
-					if (err) {
-						console.error(err);
-					}
-					callback();
 				});
 			}, function (err) {
 				if (err) {
@@ -214,7 +214,6 @@ function processMailings() {
 			if (err) {
 				console.error(err);
 			}
-
 			if (mailsFinished >= mailsSent) {
 				process.exit();
 			}

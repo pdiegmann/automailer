@@ -167,6 +167,10 @@ define(["Underscore", "text!templates/search.html", "text!templates/companyListS
 			var state = $e.data("state");
 			// 0 == untried, 1 == in progress, 2 == successfull, 3 == failed
 
+			console.log($e);
+			console.log(addressid);
+			console.log(state);
+
 			if (addressid && !isNaN(state)) {
 				$e.addClass("disabled");
 				$e.siblings("a[data-state]").addClass("disabled");
