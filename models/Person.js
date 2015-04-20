@@ -4,6 +4,7 @@ module.exports = function(mongoose) {
 		title: { type: String, index: true },
 		firstName: { type: String, index: true },
 		lastName: { type: String, index: true },
+		gender: { type: Number, index: true, min: -1, max: 1 },
 		location: { type: String, index: true },
 		departement: { type: String, index: true },
 		position: { type: String, index: true },

@@ -27,6 +27,7 @@ var MailingListModel = require("./models/MailingList")(dbconnection);
 var MailTemplateModel = require("./models/MailTemplate")(dbconnection);
 var PersonModel = require("./models/Person")(dbconnection);
 var CompanyModel = require("./models/Company")(dbconnection);
+var FirstNameModel = require("./models/FirstName")(dbconnection);
 
 app.configure(function() {
 	app.set("view engine", "jade");
@@ -172,6 +173,86 @@ app.put('/dataset/:datasetid/upload', function(req, res, next) {
 	});
 });
 
+function guessGender(person, datasetid, callback) {
+	if (!person || !person.firstName || person.firstName.length <= 0) {
+		if (callback) {
+			callback();
+		}
+		return;
+	}
+
+	var firstNameSegments = person.firstName.split(" ");
+	if (!firstNameSegments) {
+		if (callback) {
+			callback();
+		}
+		return;
+	};
+
+	var regex;
+	try {
+		regex = new RegExp("^" + firstNameSegments[0] + "$", "i")
+	}
+	catch (e) {
+		return callback();
+	}
+
+	FirstNameModel.find({ "dataset": datasetid, "name": regex }, function(err, firstNames) {
+		console.log(firstNames.length + " names found");
+		console.log(firstNames);
+		if (err) {
+			if (callback) {
+				callback(err);
+			}
+			else {
+				console.error(err);
+			}
+			return;
+		}
+		else if (firstNames && firstNames.length > 0) {
+			if (firstNames.length > 1) {
+				var foundGender = -1;
+				for (var i = 0; i < firstNames.length; i++) {
+					if (foundGender != -1 && firstNames[i].gender != foundGender) {
+						foundGender = -1;
+						break;
+					}
+					foundGender = firstNames[i].gender;
+				}
+				
+				if (foundGender >= -1 && foundGender <= 1) {
+					person.gender = foundGender;
+				}
+			}
+			else {
+				person.gender = firstNames[0].gender;
+			}
+			console.log(person.firstName + ": " + person.gender);
+
+			person.save(function(err) {
+				if (err) {
+					if (callback) {
+						callback(err);
+					}
+					else {
+						console.error(err);
+					}
+				}
+				else {
+					if (callback) {
+						callback();
+					}
+				}
+			});
+		}
+		else {
+			if (callback) {
+				callback();
+			}
+		}
+	});
+}
+
 function saveCompanyAndPersonsFromCSVRow(row, datasetId) {
 	var company = getCompanyFromCSVRow(row, datasetId);
 	if (!company) return;
@@ -202,6 +283,7 @@ function saveCompanyAndPersonsFromCSVRow(row, datasetId) {
 							persons.push(person._id);
 
 							guessMailAddresses(person, company);
+							guessGender(person, datasetId)
 
 							callback();
 						});
@@ -601,6 +683,67 @@ function stringArrayToNumberArray(strArray) {
 	}
 	return numbers;
 }
+
+app.get('/dataset/:datasetid/names/:gender/put/:names', function(req, res, next) {
+	var datasetid = req.params.datasetid;
+	var gendername = req.params.gender.toLowerCase();	
+	var gender = gendername === "male" || gendername === "m" ? 1 : 0;
+	var names = req.params.names; //req.param("names", "");
+	if (!names || names.length <= 0) return res.send(500);
+	var nameSegments = names.split(',');
+	var names = [];
+	for (var i = 0; i < nameSegments.length; i++) {
+		names.push(nameSegments[i].trim());
+	}
+
+	async.each(names, function(name, callback) {
+		var firstName = new FirstNameModel();
+		firstName.dataset = datasetid;
+		firstName.name = name;
+		firstName.gender = gender;
+
+		firstName.save(function(err) {
+			if (err) {
+				callback(err);
+			}
+			else {
+				callback();
+			}
+		})
+	}, function(err) {
+		if (err) {
+			console.error(err);
+			return res.send(500);
+		}
+		return res.send(200);
+	});
+});
+
+app.get('/dataset/:datasetid/persons/guess/gender', function(req, res, next) {
+	var datasetid = req.params.datasetid;
+
+	PersonModel.find({ "dataset": datasetid }, function(err, persons) {
+		if (err) {
+			console.error(err);
+			return res.send(500);
+		}
+
+		if (!persons || persons.length <= 0) {
+			return res.send(404);
+		}
+
+		async.each(persons, function(person, callback) {
+			guessGender(person, datasetid, callback);
+		}, function(err) {
+			if (err) {
+				console.error(err);
+				return res.send(500);
+			}
+
+			return res.send(200);
+		})
+	});
+});
 
 app.get('/dataset/:datasetid/filter', function(req, res, next) {
 	var start = process.hrtime();
