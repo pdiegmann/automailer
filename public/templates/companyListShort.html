@@ -45,7 +45,7 @@
 
 						if (matchesQuery) { 
 						%>
-							<li><%= model[i].executives[j].lastName %>, <%= model[i].executives[j].firstName %> 
+							<li><% model[i].executives[j].gender === 0 ? print("Frau ") : model[i].executives[j].gender === 1 ? print("Herr ") : print("") %><%= model[i].executives[j].lastName %>, <%= model[i].executives[j].firstName %> 
 							<% if (model[i].executives[j].title && model[i].executives[j].title.length > 0) { %> 
 								(<%= model[i].executives[j].title %>)
 							<% } %>

@@ -48,6 +48,11 @@
             <td>&lt;%= receiver.lastName %&gt;</td>
           </tr>
           <tr>
+            <td>gender</td>
+            <td>Geschlecht des Empfängers (0 = w, 1 = m, -1 = n/a)</td>
+            <td>Sehr geehrte&lt;% if (receiver.gender === 0) { print(" Frau"); } else if (receiver.gender === 1) { print("r Herr"); } else { print(" Damen und Herren"); } %&gt;</td>
+          </tr>
+          <tr>
             <td>title</td>
             <td>Titel (falls vorhanden) des Empfängers</td>
             <td>&lt;%= receiver.title %&gt;</td>
