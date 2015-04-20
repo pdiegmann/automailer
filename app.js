@@ -608,7 +608,7 @@ function guessMailAddresses(person, company) {
 				firstName.replace(" ", ""),
 				firstName.replace(" ", "."),
 				firstName.replace(" ", "_"),
-				firstName.replace(" ", "-"),
+				//firstName.replace(" ", "-"),
 				firstName.replace("-", ""),
 				firstName.replace("-", "."),
 				firstName.replace("-", "_")
@@ -626,7 +626,7 @@ function guessMailAddresses(person, company) {
 				lastName.replace(" ", ""),
 				lastName.replace(" ", "."),
 				lastName.replace(" ", "_"),
-				lastName.replace(" ", "-"),
+				//lastName.replace(" ", "-"),
 				lastName.replace("-", ""),
 				lastName.replace("-", "."),
 				lastName.replace("-", "_")
@@ -640,12 +640,22 @@ function guessMailAddresses(person, company) {
 	var mailAddresses = [];
 	person.mailAddresses = [];
 	for (var i = 0; i < lastNameAlternatives.length; i++) {
+		// last name
 		var mailAddress = lastNameAlternatives[i] + "@" + companyDomain;
 		mailAddresses.push(mailAddress);
 		person.mailAddresses.push({ address: mailAddress, state: 0 });
 
+
+		// first name, last name
 		for (var j = 0; j < firstNameAlternatives.length; j++) {
 			mailAddress = firstNameAlternatives[j] + "." + lastNameAlternatives[i] + "@" + companyDomain;
+			mailAddresses.push(mailAddress);
+			person.mailAddresses.push({ address: mailAddress, state: 0 });
+		}
+
+		// last name, first name
+		for (var j = 0; j < firstNameAlternatives.length; j++) {
+			mailAddress = lastNameAlternatives[i] + "." + firstNameAlternatives[j] + "@" + companyDomain;
 			mailAddresses.push(mailAddress);
 			person.mailAddresses.push({ address: mailAddress, state: 0 });
 		}
