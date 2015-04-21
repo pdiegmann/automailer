@@ -141,10 +141,11 @@ function processMailings() {
 							if (err) {
 								console.error(err);
 							}
-
+							
 							var message = {
 								text: mail.body.replace(/<br\s*[\/]?>/gi, "\n").replace(/<\/?[^>]+(>|$)/g, ""), 
-								from: (sender.name && sender.name.length > 0) ? ("\"" + sender.name.replace(",", "") + "\"") : "" + " <" + mail.from + ">",
+								from: [((sender.name && sender.name.length > 0) ? ("\"" + sender.name + "\" ") : "") + "<" + mail.from + ">"],
+								"reply-to": mail.from,
 								to: mail.to,
 								subject: mail.subject,
 								"message-id": "<" + mail._id + "." + mailingListId + "." + datasetId + "@" + os.hostname() +">", 
