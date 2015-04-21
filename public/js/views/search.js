@@ -297,6 +297,8 @@ define(["Underscore", "text!templates/search.html", "text!templates/companyListS
 				$e.data("confirmed", null);
 
 				var params = $('#search_details').serializeJSON({checkboxUncheckedValue:"false"});
+				var params2 = $('#mailsettings').serializeJSON({checkboxUncheckedValue:"false"});
+				$.extend(params, params2);
 
 				$.post("/dataset/" + $("#dataset-selector").val() + "/mail/prepare/template/" + templateid, params, function(res) {
 					$e.removeClass("btn-info");

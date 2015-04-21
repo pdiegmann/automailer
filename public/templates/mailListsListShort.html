@@ -5,7 +5,7 @@
 			<th>Erstellt</th>
 			<th>Empfänger</th>
 			<th>Gesendet</th>
-			<th>Ungesendet</th>
+			<th>Ausstehend</th>
 			<th>Antworten</th>
 			<th>Template</th>
 		</tr>
@@ -20,14 +20,18 @@
 				<% } %>
 			</td>
 			<td>
-				<%= (model[i].sendTo ? model[i].sendTo.length : "0") %>				
+				<%= (model[i].sendTo ? model[i].sendTo.length : "0") %>	Personen / 
+				<%= (model[i].preparedMails && model[i].sentMails ? (model[i].preparedMails.length + model[i].sentMails.length) : "0") %> Adressen
+				<a class="btn btn-warning stockUp" data-maillistid="<%= model[i]._id %>">E-Mails aufstocken</a>
 			</td>
 			<td>
 				<%= (model[i].sentMails ? model[i].sentMails.length : "0") %>
 			</td>
 			<td>
-				<% if (model[i].sendTo && model[i].sentMails && model[i].sendTo.length - model[i].sentMails.length > 0) { %> 
-					<a class="btn btn-warning sendUndsend" data-maillistid="<%= model[i]._id %>"><span class="badge"><%= model[i].sendTo.length - model[i].sentMails.length %></span> Nachsenden</a>
+				<% if (model[i].preparedMails && model[i].preparedMails.length > 0) { %> 
+					<a class="btn btn-warning sendUnsent" data-maillistid="<%= model[i]._id %>"><span class="badge"><%= model[i].preparedMails.length %></span> Nachsenden</a>
+				<% } else { %>
+					0
 				<% } %>
 			</td>
 			<td>

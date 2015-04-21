@@ -7,7 +7,9 @@ define(["Underscore", "text!templates/maillists.html", "text!templates/mailLists
 
 		events: {
 			'click [data-gotoPage]': 'gotoPage',
-			'click .refresh': 'refresh'
+			'click .refresh': 'refresh',
+			'click .sendUnsent': 'sendUnsent',
+			'click .stockUp': 'stockUp'
 		},
 
 		initialize: function() {
@@ -40,8 +42,6 @@ define(["Underscore", "text!templates/maillists.html", "text!templates/mailLists
 		renderCollection: function(collection) {
 			if (!collection)
 				collection = this.collection;
-
-			console.log(collection);
 
 			var t = _.template(maillistsListShortTemplate, {
                 "model": collection.toJSON(),
@@ -111,6 +111,40 @@ define(["Underscore", "text!templates/maillists.html", "text!templates/mailLists
 			});
 
 			return false;
+		},
+
+		sendUnsent: function(e) {
+			e.preventDefault();
+			var $e = $(e.target);
+			if (!$e.data("maillistid")) $e = $e.parent();
+			if (!$e.data("maillistid")) $e = $e.parent();
+
+			var maillistid = $e.data("maillistid");
+			var params = $('#mailsettings').serializeJSON({checkboxUncheckedValue:"false"});
+
+			this.showLoading();
+			var that = this;
+			$.post("/dataset/" + $("#dataset-selector").val() + "/mail/send/mailinglist/" + maillistid, params, function(res) {
+				that.hideLoading();
+				that.refresh(e);
+			});
+		},
+
+		stockUp: function(e) {
+			e.preventDefault();
+			var $e = $(e.target);
+			if (!$e.data("maillistid")) $e = $e.parent();
+			if (!$e.data("maillistid")) $e = $e.parent();
+
+			var maillistid = $e.data("maillistid");
+			var params = $('#mailsettings').serializeJSON({checkboxUncheckedValue:"false"});
+
+			this.showLoading();
+			var that = this;
+			$.post("/dataset/" + $("#dataset-selector").val() + "/mail/stockup/mailinglist/" + maillistid, params, function(res) {
+				that.hideLoading();
+				that.refresh(e);
+			});
 		},
 
 		hideLoading: function() {

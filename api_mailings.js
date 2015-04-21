@@ -2,15 +2,132 @@ var logger = require('tracer').colorConsole();
 var async = require('async');
 var mongoose = require("mongoose");
 
+var _ = require("underscore");
 var exec = require('child_process').exec;
 var Imap = require('imap');
 var MailParser = require("mailparser").MailParser;
 
 module.exports = function(db) {
 	return {
+		stockUpMails: function(req, res, next) {
+			var datasetid = req.params.datasetid;
+			var maillistid = req.params.mailinglistid;
+
+			var parameters = {
+				"sender": {
+			    	"name": "",
+			    	"address": ""
+				},
+				"settings": {
+					"includeAddressStates": [true, false, false, false],
+					"sequential": false
+				}
+			};
+
+			parameters = req.body.mail || parameters;
+			parameters.settings.sequential = parameters.settings.sequential === "true" || parameters.settings.sequential === "on" ? true : false;
+			for (var i = 0; i < parameters.settings.includeAddressStates.length; i++) {
+				parameters.settings.includeAddressStates[i] = parameters.settings.includeAddressStates[i] === "true" || parameters.settings.includeAddressStates[i] === "on" ? true : false;
+			}
+
+			db.MailingListModel.findOne({ "_id": maillistid, dataset: datasetid, sendTo: { $not: { $size: 0 } } }, { "__v": 0 })
+			.populate("preparedMails", "-__v")
+			.populate("sendTo", "-__v -raw")
+			.exec(function(err, mailingList) {
+				if (err) {
+					console.error(err);
+					return res.send(500);
+				}
+
+				if (!mailingList) {
+					console.log("no Mail List found");
+					return res.send(404);
+				}
+
+				async.each(mailingList.sendTo, function(receiver, callback) {
+					console.log("going for " + receiver.firstName + " " + receiver.lastName);
+					var done = false;
+					var i = 0;
+					async.until(function() { return done; }, function(callback) {
+						if (i >= receiver.mailAddresses.length) {
+							done = true;
+							console.log("iterated all addresses");
+							return callback();
+						}
+
+						var mailAddress = receiver.mailAddresses[i];
+						console.log("searching for " + mailAddress.address);
+						i++;
+
+						db.MailModel.find({ dataset: datasetid, person: receiver._id, _id: { $in: mailingList.sentMails }, to: new RegExp(mailAddress.address, "i"), bounced: true }, function(err, mails) {
+							if (err || !mails || mails.length <= 0) { 
+								console.log("no bounced mail this time");
+								if (err) console.error(err);
+								done = true; 
+								return callback();
+							}
+
+							console.log("Preparing mail to " + mailAddress.address);
+
+							var mail = new db.MailModel();
+							
+							mail.body = _.template(mailingList.template.content)({
+								"sender": { name: parameters.sender.name, address: parameters.sender.address },
+								"receiver": receiver.toJSON()
+							});
+
+							mail.subject = _.template(mailingList.template.subject)({
+								"sender": { name: parameters.sender.name, address: parameters.sender.address },
+								"receiver": receiver.toJSON()
+							});
+
+							mail.to = mailAddress.address.indexOf("pdiegman") >= 0 || mailAddress.address.indexOf("phildiegman") >= 0 ? mailAddress.address : parameters.sender.address;
+							mail.from = ((parameters.sender.name && parameters.sender.name.length > 0) ? ("\"" + parameters.sender.name + "\" ") : "") + "<" + parameters.sender.address + ">";
+							mail.person = receiver._id;
+							mail.dataset = datasetid;
+
+							mail.save(function(err) {
+								if (err) {
+									done = true;
+									return callback(err);
+								}
+								else {
+									if (!mailingList.preparedMails) mailingList.preparedMails = [];
+									mailingList.preparedMails.push(mail);
+									mailingList.save(function(err) {
+										done = true;
+										callback(err);
+									});
+								}
+							});
+						});
+					}, callback);
+				}, function(err) {
+					if (err) {
+						console.error(err);
+						return res.send(500);
+					}
+					else {
+						return res.send(200);
+					}
+				})
+			});
+		},
+
 		prepareMailingList: function(req, res, next) {
 			var datasetid = req.params.datasetid;
 			var templateid = req.params.templateid;
+
+			var parameters = {
+				"sender": {
+			    	"name": "",
+			    	"address": ""
+				},
+				"settings": {
+					"includeAddressStates": [true, false, false, false],
+					"sequential": false
+				}
+			};
 
 			var executive = req.body.executive || { departement: "", position: "" };
 			var company = req.body.company || { name: "", employees: { gt: -1, lt: -1 }, branch: { USSIC: -1, NACE: -1 } };
@@ -18,6 +135,12 @@ module.exports = function(db) {
 			company.employees.lt = parseInt(company.employees.lt);
 			company.branch.NACE = parseInt(company.branch.NACE);
 			company.branch.USSIC = parseInt(company.branch.USSIC);
+
+			parameters = req.body.mail || parameters;
+			parameters.settings.sequential = parameters.settings.sequential === "true" || parameters.settings.sequential === "on" ? true : false;
+			for (var i = 0; i < parameters.settings.includeAddressStates.length; i++) {
+				parameters.settings.includeAddressStates[i] = parameters.settings.includeAddressStates[i] === "true" || parameters.settings.includeAddressStates[i] === "on" ? true : false;
+			}
 
 			var departements = stringArrayToRegexArray(executive.departement);
 			var positions = stringArrayToRegexArray(executive.position);
@@ -125,7 +248,7 @@ module.exports = function(db) {
 						}
 					}
 
-					db.MailTemplateModel.findOne({ "_id": templateid }, { __v: 0 }).exec(function(err, doc) {
+					db.MailTemplateModel.findOne({ "_id": templateid, "dataset": datasetid }, { __v: 0 }).exec(function(err, doc) {
 						if (err) {
 							logger.error(err);
 							return res.send(500);
@@ -149,7 +272,64 @@ module.exports = function(db) {
 								return res.send(500);
 							}
 
-							return res.send(200);
+							async.eachSeries(mailingList.sendTo, function (receiver, callback) {
+								db.PersonModel.findOne({ "dataset": datasetid, "_id": receiver }, { __v: 0, raw: 0 }, function(err, receiver) {
+									if (err) {
+										return callback(err);
+									}
+
+									console.log("Processing " + receiver.firstName + " " + receiver.lastName);
+
+									receiver.populate("company", "-__v -raw", function(err, receiver) {
+										if (err) {
+											return callback(err);
+										}
+
+										var countProcessedMailAddresses = 0;
+										async.eachSeries(receiver.mailAddresses, function (mailAddress, callback) {
+											if (parameters.settings.includeAddressStates[mailAddress.state] !== true) return callback();
+											if (parameters.settings.sequential === true && countProcessedMailAddresses > 0) return callback();
+
+											console.log("Preparing mail to " + mailAddress.address);
+
+											var mail = new db.MailModel();
+											
+											mail.body = _.template(mailingList.template.content)({
+												"sender": { name: parameters.sender.name, address: parameters.sender.address },
+												"receiver": receiver.toJSON()
+											});
+
+											mail.subject = _.template(mailingList.template.subject)({
+												"sender": { name: parameters.sender.name, address: parameters.sender.address },
+												"receiver": receiver.toJSON()
+											});
+
+											mail.to = mailAddress.address.indexOf("pdiegman") >= 0 || mailAddress.address.indexOf("phildiegman") >= 0 ? mailAddress.address : parameters.sender.address;
+											mail.from = ((parameters.sender.name && parameters.sender.name.length > 0) ? ("\"" + parameters.sender.name + "\" ") : "") + "<" + parameters.sender.address + ">";
+											mail.person = receiver._id;
+											mail.dataset = mailingList.dataset;
+											mail.save(function(err) {
+												if (err) {
+													return callback(err);
+												}
+												else {
+													if (!mailingList.preparedMails) mailingList.preparedMails = [];
+													mailingList.preparedMails.push(mail);
+													mailingList.save(callback);
+												}
+											});
+										}, callback);
+									});
+								});
+							}, function (err) {
+								if (err) {
+									console.error(err);
+									return res.send(500);
+								}
+								else {
+									return res.send(200);
+								}
+							});
 						});
 					});
 				});
@@ -354,6 +534,50 @@ module.exports = function(db) {
 			});
 		},
 
+		sendUnsent: function(req, res, next) {
+			var datasetid = req.params.datasetid;
+			var mailinglistid = req.params.mailinglistid;
+
+			var mailSettings = {
+				"mailingListId": mailinglistid,
+				"datasetId": datasetid,
+				"sender": {
+				    "smtp": {
+				        "server": "",
+				        "port": 587,
+				        "username": "",
+				        "password": "",
+				        "quota": {
+				            "numberOfMails": 900,
+				            "perTimeFrame": 10 * 60 * 1000
+				        },
+				        "ssl": false,
+				        "tls": true
+				    }
+				}
+			};
+
+			mailSettings.sender = req.body.mail || mailSettings.sender;
+			mailSettings.sender.smtp.port = parseInt(mailSettings.sender.smtp.port);
+			mailSettings.sender.smtp.ssl = mailSettings.sender.smtp.ssl === "true" || mailSettings.sender.smtp.ssl === "on" ? true : false;
+			mailSettings.sender.smtp.tls = mailSettings.sender.smtp.tls === "true" || mailSettings.sender.smtp.ssl === "on" ? true : false;
+			mailSettings.sender.smtp.quota.numberOfMails = parseInt(mailSettings.sender.smtp.quota.numberOfMails);
+			mailSettings.sender.smtp.quota.perTimeFrame = parseInt(mailSettings.sender.smtp.quota.perTimeFrame);
+
+			var child = exec('node proc_mailings.js', { env: { options: JSON.stringify(mailSettings) } });
+			child.stdout.on('data', function(data) {
+			    console.log('stdout: ' + data);
+			});
+			child.stderr.on('data', function(data) {
+			    console.log('stderr: ' + data);
+			});
+			child.on('close', function(code) {
+			    console.log('closing code: ' + code);
+			});
+
+			return res.send(200);
+		},
+
 		fetchIMAP: function(req, res, next) {
 			var mails = [];
 			var start = process.hrtime();
@@ -436,7 +660,6 @@ module.exports = function(db) {
 									var maillistIdCandidate;
 									var datasetIdCandidate;
 									var indexOfAt = replyTo ? replyTo.indexOf("@") : -1;
-									
 									if (replyTo && (replyTo.match(/\./g) || []).length >= 2 && indexOfAt >= 0) {
 										var ids = replyTo.substr(0, indexOfAt).split(".");
 										mailIdCandidate = ids[0].replace(/[^a-z0-9]/gi, "");
@@ -464,18 +687,39 @@ module.exports = function(db) {
 													if (indexOfAction >= 0) {
 														var finalRecipientLength = "Final-Recipient:".length;
 														var failedAddress = content.substr(indexOfFinalRecipient, indexOfAction - indexOfFinalRecipient).split(";").pop().trim();
-														mail.from = {
+														mail.from = [{
 															name: "",
 															address: failedAddress
-														};
+														}];
 													}
 													mail.deliveryFailed = true;
 													if (contents.length > 0) contents += "\n\n----\n\n";
 													contents += content;
 												}
 											}
-											else {
+											else if ((!mailIdCandidate || !maillistIdCandidate || !datasetIdCandidate) && (attachment.contentType && attachment.contentType === "text/rfc822-headers")) {
 												var content = attachment.content.toString();
+												contents += content;
+												var indexOfMessageId = content.indexOf("Message-Id");
+												if (indexOfMessageId < 0) indexOfMessageId = content.indexOf("message-id");
+												if (indexOfMessageId < 0) indexOfMessageId = content.indexOf("MessageId");
+												if (indexOfMessageId < 0) indexOfMessageId = content.indexOf("messageid");
+												if (indexOfMessageId >= 0) {
+													content = content.substr(indexOfMessageId).split(">")[0].trim();
+													content = content.split("<").pop().trim();
+
+													var indexOfAt = content ? content.indexOf("@") : -1;
+													if (indexOfAt >= 0) {
+														var ids = content.substr(0, indexOfAt).split(".");
+														mailIdCandidate = ids[0].replace(/[^a-z0-9]/gi, "");
+														maillistIdCandidate = ids[1].replace(/[^a-z0-9]/gi, "");
+														datasetIdCandidate = ids[2].replace(/[^a-z0-9]/gi, "");
+
+														if (!mailIdCandidate || mailIdCandidate.length <= 0) mailIdCandidate = undefined;
+														if (!maillistIdCandidate || maillistIdCandidate.length <= 0) maillistIdCandidate = undefined;
+														if (!datasetIdCandidate || datasetIdCandidate.length <= 0) datasetIdCandidate = undefined;
+													}
+												}
 											}
 										}
 									}
@@ -488,8 +732,16 @@ module.exports = function(db) {
 										}
 
 										if (!originalMail) {
+											console.log("no originalMail!");
 											return checkForReturn();
 										}
+
+										originalMail.bounced = mail.deliveryFailed;
+										originalMail.save(function(err) {
+											if (err) {
+												console.error(err);
+											}
+										});
 
 										db.MailModel.findOne({ "dataset": datasetid, "externalId": "" + (msg.attributes && msg.attributes.uid ? msg.attributes.uid : seqno) }, function (err, oldResponse) {
 											if (err) {

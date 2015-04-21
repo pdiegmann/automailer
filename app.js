@@ -97,40 +97,7 @@ app.delete('/dataset/:datasetid', api_dataset.delete);
 
 app.put('/dataset/:datasetid/upload', api_dataset.upload);
 
-app.get('/dataset/:datasetid/names/:gender/put/:names', function(req, res, next) {
-	var datasetid = req.params.datasetid;
-	var gendername = req.params.gender.toLowerCase();	
-	var gender = gendername === "male" || gendername === "m" ? 1 : 0;
-	var names = req.params.names; //req.param("names", "");
-	if (!names || names.length <= 0) return res.send(500);
-	var nameSegments = names.split(',');
-	var names = [];
-	for (var i = 0; i < nameSegments.length; i++) {
-		names.push(nameSegments[i].trim());
-	}
-
-	async.each(names, function(name, callback) {
-		var firstName = new db.FirstNameModel();
-		firstName.dataset = datasetid;
-		firstName.name = name;
-		firstName.gender = gender;
-
-		firstName.save(function(err) {
-			if (err) {
-				callback(err);
-			}
-			else {
-				callback();
-			}
-		})
-	}, function(err) {
-		if (err) {
-			console.error(err);
-			return res.send(500);
-		}
-		return res.send(200);
-	});
-});
+app.get('/dataset/:datasetid/names/:gender/put/:names', api_dataset.initNamesWithGenders);
 
 app.get('/dataset/:datasetid/persons/guess/gender', api_dataset.guessGender);
 
@@ -139,6 +106,10 @@ app.get('/dataset/:datasetid/filter', api_company.filter);
 /**** MAILINGS ****/
 
 app.post('/dataset/:datasetid/mail/send/template/:templateid', api_mailings.sendToFilter);
+
+app.post('/dataset/:datasetid/mail/send/mailinglist/:mailinglistid', api_mailings.sendUnsent);
+
+app.post('/dataset/:datasetid/mail/stockup/mailinglist/:mailinglistid', api_mailings.stockUpMails);
 
 app.post('/dataset/:datasetid/mail/prepare/template/:templateid', api_mailings.prepareMailingList);
 

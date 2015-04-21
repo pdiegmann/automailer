@@ -8,7 +8,7 @@
 		<form class="form-horizontal" id="mailsettings">
 			<div role="tabpanel">
 				<ul class="nav nav-tabs" role="tablist">
-					<li role="presentation" class="active"><a href="#mailaccount" aria-controls="mailaccount" role="tab" data-toggle="tab">Account</a></li>
+					<!--<li role="presentation" class="active"><a href="#mailaccount" aria-controls="mailaccount" role="tab" data-toggle="tab">Account</a></li>-->
 					<li role="presentation"><a href="#smtpserver" aria-controls="smtpserver" role="tab" data-toggle="tab">SMTP</a></li>
 					<li role="presentation"><a href="#mailquota" aria-controls="mailquota" role="tab" data-toggle="tab">Quota</a></li>
 					<li role="presentation"><a href="#settings" aria-controls="settings" role="tab" data-toggle="tab">Einstellungen</a></li>
@@ -17,7 +17,7 @@
 			</div>
 
 			<div class="tab-content" style="margin-top:1.25em;">
-				<div role="tabpanel" class="tab-pane active" id="mailaccount">
+				<!--<div role="tabpanel" class="tab-pane active" id="mailaccount">
 					<div class="form-group form-group-sm">
 						<label for="mail[name]" class="col-sm-2 control-label">Name:</label>
 						<div class="col-sm-9 col-sm-offset-1" style="margin-top: 0.33em;">
@@ -30,8 +30,8 @@
 							<input class="form-control" type="email" name="mail[address]" placeholder="E-Mail" />
 						</div>
 					</div>
-				</div>
-				<div role="tabpanel" class="tab-pane" id="smtpserver">
+				</div>-->
+				<div role="tabpanel" class="tab-pane active" id="smtpserver">
 					<div class="form-group form-group-sm">
 						<label for="mail[smtp][server]" class="col-sm-2 control-label">Server:</label>
 						<div class="col-sm-9 col-sm-offset-1" style="margin-top: 0.33em;">
@@ -91,7 +91,7 @@
 					<div class="form-group form-group-sm">
 						<div class="checkbox">
 							<label>
-								<input type="checkbox" name="mail[settings][sequential]"> Sequentieller Mailversand
+								<input type="checkbox" name="mail[settings][sequential]" checked> Sequentieller Mailversand
 							</label>
 						</div>
 					</div>

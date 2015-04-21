@@ -5,6 +5,7 @@ module.exports = function(mongoose) {
 		to: { type: String, index: true },
 		from: { type: String, index: true },
 		externalId: { type: String, index: true },
+		bounced: { type: Boolean, index: true },
 		person: { type: mongoose.Schema.ObjectId, ref: 'Person', index: true },
 		sent: { type: Date },
 		received: { type: Date },

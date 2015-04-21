@@ -4,13 +4,12 @@
 		<p>Nutze die Seitenleiste um die Suche anzupassen.</p>
 	</div>
 	<div class="col-xs-12 col-sm-12 col-md-5 col-lg-5">
-		<!--
 		<form class="form-horizontal" id="mailsettings">
 			<div role="tabpanel">
 				<ul class="nav nav-tabs" role="tablist">
 					<li role="presentation" class="active"><a href="#mailaccount" aria-controls="mailaccount" role="tab" data-toggle="tab">Account</a></li>
-					<li role="presentation"><a href="#smtpserver" aria-controls="smtpserver" role="tab" data-toggle="tab">SMTP</a></li>
-					<li role="presentation"><a href="#mailquota" aria-controls="mailquota" role="tab" data-toggle="tab">Quota</a></li>
+					<!--<li role="presentation"><a href="#smtpserver" aria-controls="smtpserver" role="tab" data-toggle="tab">SMTP</a></li>
+					<li role="presentation"><a href="#mailquota" aria-controls="mailquota" role="tab" data-toggle="tab">Quota</a></li>-->
 					<li role="presentation"><a href="#settings" aria-controls="settings" role="tab" data-toggle="tab">Einstellungen</a></li>
 					<li role="presentation"><a href="#mailtemplate" aria-controls="mailtemplate" role="tab" data-toggle="tab">Vorlage</a></li>
 				</ul>
@@ -21,17 +20,17 @@
 					<div class="form-group form-group-sm">
 						<label for="mail[name]" class="col-sm-2 control-label">Name:</label>
 						<div class="col-sm-9 col-sm-offset-1" style="margin-top: 0.33em;">
-							<input class="form-control" type="text" name="mail[name]" placeholder="Anzeigename" />
+							<input class="form-control" type="text" name="mail[sender][name]" placeholder="Anzeigename" />
 						</div>
 					</div>
 					<div class="form-group form-group-sm">
 						<label for="mail[address]" class="col-sm-2 control-label">Von:</label>
 						<div class="col-sm-9 col-sm-offset-1" style="margin-top: 0.33em;">
-							<input class="form-control" type="email" name="mail[address]" placeholder="E-Mail" />
+							<input class="form-control" type="email" name="mail[sender][address]" placeholder="E-Mail" />
 						</div>
 					</div>
 				</div>
-				<div role="tabpanel" class="tab-pane" id="smtpserver">
+				<!--<div role="tabpanel" class="tab-pane" id="smtpserver">
 					<div class="form-group form-group-sm">
 						<label for="mail[smtp][server]" class="col-sm-2 control-label">Server:</label>
 						<div class="col-sm-9 col-sm-offset-1" style="margin-top: 0.33em;">
@@ -86,16 +85,16 @@
 							<input class="form-control" type="number" min="-1" name="mail[smtp][quota][perTimeFrame]:number" placeholder="Sekunden" />
 						</div>
 					</div>
-				</div>
+				</div>-->
 				<div role="tabpanel" class="tab-pane" id="settings">
-					<div class="form-group form-group-sm">
+					<!--<div class="form-group form-group-sm">
 						<div class="checkbox">
 							<label>
 								<input type="checkbox" name="mail[settings][sequential]"> Sequentieller Mailversand
 							</label>
 						</div>
 					</div>
-					<hr/>
+					<hr/>-->
 					<div class="form-group form-group-sm">
 						<div class="checkbox">
 							<label>
@@ -129,25 +128,12 @@
 					</div>
 					<div class="form-group">
 						<div class="col-sm-12">
-							<a class="btn btn-block btn-lg btn-primary disabled" id="sendMails" data-confirmed="false" style="margin-top: 0.25em;">Rundmail senden</a>
+							<a class="btn btn-block btn-lg btn-primary disabled" id="prepareMails" data-confirmed="false" style="margin-top: 2.25em;">Rundmails vorbereiten</a>
 						</div>
 					</div>
 				</div>
 			</div>
 		</form>
-		-->
-		<div class="form-group" style="margin-top: 1.25em;">
-			<label for="template-selector" class="col-sm-2 control-label">Template:</label>
-			<div class="col-sm-9 col-sm-offset-1" style="margin-top: 0.33em;">
-				<select class="form-control" id="template-selector" name="template-selector">
-				</select>
-			</div>
-		</div>
-		<div class="form-group">
-			<div class="col-sm-12">
-				<a class="btn btn-block btn-lg btn-primary disabled" id="prepareMails" data-confirmed="false" style="margin-top: 2.25em;">Rundmails vorbereiten</a>
-			</div>
-		</div>
 	</div>
 </div>
 
