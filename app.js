@@ -140,6 +140,8 @@ app.get('/dataset/:datasetid/filter', api_company.filter);
 
 app.post('/dataset/:datasetid/mail/send/template/:templateid', api_mailings.sendToFilter);
 
+app.post('/dataset/:datasetid/mail/prepare/template/:templateid', api_mailings.prepareMailingList);
+
 app.get('/dataset/:datasetid/mails/fetch', api_mailings.fetchIMAP);
 
 /**** MAILS ****/

@@ -8,6 +8,7 @@ define(["Underscore", "text!templates/search.html", "text!templates/companyListS
 		events: {
 			'click [data-gotoPage]': 'gotoPage',
 			'click .setmailaddressstate': 'setMailAddressState',
+			'click #prepareMails': 'prepareMails',
 			'click #sendMails': 'sendMails'
 		},
 
@@ -128,14 +129,17 @@ define(["Underscore", "text!templates/search.html", "text!templates/companyListS
 
 			if (this.collection.state.totalRecords == 0) {
 				$('#sendMails').addClass("disabled");
+				$('#prepareMails').addClass("disabled");
 				$('#info').html("Keine Ergebnisse gefunden!");
 			}
 			else if (this.collection.state.totalRecords == 1) {
 				$('#sendMails').removeClass("disabled");
+				$('#prepareMails').removeClass("disabled");
 				$('#info').html("Ein Ergebnis in " + (this.collection.duration / 1000).toFixed(2) + "s gefunden.");
 			}
 			else {
 				$('#sendMails').removeClass("disabled");
+				$('#prepareMails').removeClass("disabled");
 				$('#info').html(this.collection.state.totalRecords + " Ergebnisse in " + (this.collection.duration / 1000).toFixed(2) + "s gefunden.");
 			}
 
@@ -233,7 +237,7 @@ define(["Underscore", "text!templates/search.html", "text!templates/companyListS
         			$e.html("Mails an ca. <span class=\"badge\">" + this.collection.state.totalRecords + "</span> Personen senden?");
         		}
         		else {
-        			$e.html("<span class=\"badge\">1</span> Mail senden?");	
+        			$e.html("Ca. <span class=\"badge\">1</span> Mail senden?");	
         		}
         		$e.removeClass("btn-danger");
         		$e.addClass("btn-warning");
@@ -254,6 +258,50 @@ define(["Underscore", "text!templates/search.html", "text!templates/companyListS
 					$e.removeClass("btn-info");
 	        		$e.addClass("btn-success");
 	        		$e.text("Alle Mails gesendet!");
+				});
+        	}
+		},
+
+		prepareMails: function(e) {
+			e.preventDefault();
+			var templateid = $('#template-selector').val();
+
+			if (this.collection.personCount < 1 || !templateid || templateid.length <= 0) {
+				return;
+			}	
+
+			var $e = $(e.target);
+			if ($e.data("confirmed") == undefined) $e = $e.parent();
+			if ($e.data("confirmed") == undefined) {
+				$e = $(e.target);
+				$e.data("confirmed", false);
+			}
+			var confirmed = $e.data("confirmed");
+
+        	if (confirmed == false) {
+        		if (this.collection.personCount > 1) {
+        			$e.html("Mails für ca. <span class=\"badge\">" + this.collection.state.totalRecords + "</span> Personen vorbereiten?");
+        		}
+        		else {
+        			$e.html("Ca. <span class=\"badge\">1</span> Mail vorbereiten?");	
+        		}
+        		$e.removeClass("btn-danger");
+        		$e.addClass("btn-warning");
+        		$e.data("confirmed", true);
+        	}
+        	else {
+        		$e.addClass("disabled");
+        		$e.removeClass("btn-warning");
+				$e.addClass("btn-info");
+				$e.text("Bearbeite...");
+				$e.data("confirmed", null);
+
+				var params = $('#search_details').serializeJSON({checkboxUncheckedValue:"false"});
+
+				$.post("/dataset/" + $("#dataset-selector").val() + "/mail/prepare/template/" + templateid, params, function(res) {
+					$e.removeClass("btn-info");
+	        		$e.addClass("btn-success");
+	        		$e.text("Neue Mailing-Liste angelegt!");
 				});
         	}
 		},
