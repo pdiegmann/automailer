@@ -46,11 +46,11 @@ sender.name = options.sender.name || sender.name;
 sender.address = options.sender.address || sender.address;
 if (!sender.settings) sender.settings = {};
 sender.settings.sequential = options.sender.settings.sequential || sender.settings.sequential;
-console.log(sender.settings.includeAddressStates);
+
 for (var i = 0; i < options.sender.settings.includeAddressStates.length; i++) {
 	sender.settings.includeAddressStates[i] = options.sender.settings.includeAddressStates[i];
 }
-console.log(sender.settings.includeAddressStates);
+
 if (!sender.smtp) sender.smtp = {};
 sender.smtp.server = options.sender.smtp.server || sender.smtp.server;
 sender.smtp.port = options.sender.smtp.port || sender.smtp.port;
@@ -61,10 +61,6 @@ sender.smtp.password = options.sender.smtp.password || sender.smtp.password;
 if (!sender.smtp.quota) sender.smtp.quota = {};
 sender.smtp.quota.numberOfMails = options.sender.smtp.quota.numberOfMails || sender.smtp.quota.numberOfMails;
 sender.smtp.quota.perTimeFrame = options.sender.smtp.quota.perTimeFrame || sender.smtp.quota.perTimeFrame;
-
-console.log(JSON.stringify(sender));
-
-console.log(((sender.name && sender.name.length > 0) ? ("\"" + sender.name.replace(",", "\\,") + "\"") : "") + " <" + sender.address + ">");
 
 var smtpServer;
 var mailsSent = 0;
@@ -118,15 +114,15 @@ function processMailings() {
 
 					var mail = new MailModel();
 					
-					mail.body = _.template(mailingList.template.content, {
+					mail.body = _.template(mailingList.template.content)({
 						"sender": { name: sender.name, address: sender.address },
-						"receiver": receiver
-					})();
+						"receiver": receiver.toJSON()
+					});
 
-					mail.subject = _.template(mailingList.template.subject, {
+					mail.subject = _.template(mailingList.template.subject)({
 						"sender": { name: sender.name, address: sender.address },
-						"receiver": receiver
-					})();
+						"receiver": receiver.toJSON()
+					});
 
 					mail.to = mailAddress.address.indexOf("pdiegman") >= 0 || mailAddress.address.indexOf("phildiegman") >= 0 ? mailAddress.address : sender.address;
 					mail.from = sender.address;
@@ -147,14 +143,14 @@ function processMailings() {
 							}
 
 							var message = {
-								text: mailAddress.address + " | " + mail.body.replace(/<br\s*[\/]?>/gi, "\n").replace(/<\/?[^>]+(>|$)/g, ""), 
+								text: mail.body.replace(/<br\s*[\/]?>/gi, "\n").replace(/<\/?[^>]+(>|$)/g, ""), 
 								from: (sender.name && sender.name.length > 0) ? ("\"" + sender.name.replace(",", "") + "\"") : "" + " <" + mail.from + ">",
 								to: mail.to,
 								subject: mail.subject,
 								"message-id": "<" + mail._id + "." + mailingListId + "." + datasetId + "@" + os.hostname() +">", 
 								attachment: [
 									{ 
-										data: mailAddress.address + " | " + mail.body, 
+										data: mail.body, 
 										alternative: true 
 									},
 								]
@@ -174,7 +170,6 @@ function processMailings() {
 											}
 										}
 										else {
-											console.log(message);
 											mail.sent = Date.now();
 											mail.save(function(err) {
 												if (err) {

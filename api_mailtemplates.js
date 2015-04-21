@@ -65,8 +65,8 @@ module.exports = function(db) {
 				}
 
 				doc.name = req.body.name;
-				doc.subject = req.body.subject;
-				doc.content = req.body.content;
+				doc.subject = req.body.subject.replace(/&lt;%/g, "<%").replace(/%&gt;/g, "%>");
+				doc.content = req.body.content.replace(/&lt;%/g, "<%").replace(/%&gt;/g, "%>");
 				doc.dataset = datasetid;
 
 				doc.save(function (err) {
