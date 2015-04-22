@@ -6,6 +6,10 @@ module.exports = function(mongoose) {
 			content: { type: String },
 			subject: { type: String, index: true }
 		},
+		from: {
+			address: { type: String },
+			name: { type: String },
+		},
 		preparedMails: [{ type: mongoose.Schema.ObjectId, ref: 'Mail', index: true }],
 		sentMails: [{ type: mongoose.Schema.ObjectId, ref: 'Mail', index: true }],
 		answers: [{ type: mongoose.Schema.ObjectId, ref: 'Mail', index: true }],

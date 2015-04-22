@@ -59,46 +59,63 @@ module.exports = function(db) {
 						console.log("searching for " + mailAddress.address);
 						i++;
 
-						db.MailModel.find({ dataset: datasetid, person: receiver._id, _id: { $in: mailingList.sentMails }, to: new RegExp(mailAddress.address, "i"), bounced: true }, function(err, mails) {
+						db.MailModel.find({ dataset: datasetid, person: receiver._id, inMailingList: maillistid, to: new RegExp(mailAddress.address, "i"), bounced: true }, function(err, mails) {
 							if (err || !mails || mails.length <= 0) { 
 								console.log("no bounced mail this time");
 								if (err) console.error(err);
-								done = true; 
 								return callback();
 							}
 
-							console.log("Preparing mail to " + mailAddress.address);
+							var nextAddress;
 
-							var mail = new db.MailModel();
-							
-							mail.body = _.template(mailingList.template.content)({
-								"sender": { name: parameters.sender.name, address: parameters.sender.address },
-								"receiver": receiver.toJSON()
-							});
-
-							mail.subject = _.template(mailingList.template.subject)({
-								"sender": { name: parameters.sender.name, address: parameters.sender.address },
-								"receiver": receiver.toJSON()
-							});
-
-							mail.to = mailAddress.address.indexOf("pdiegman") >= 0 || mailAddress.address.indexOf("phildiegman") >= 0 ? mailAddress.address : parameters.sender.address;
-							mail.from = ((parameters.sender.name && parameters.sender.name.length > 0) ? ("\"" + parameters.sender.name + "\" ") : "") + "<" + parameters.sender.address + ">";
-							mail.person = receiver._id;
-							mail.dataset = datasetid;
-
-							mail.save(function(err) {
+							async.each(receiver.mailAddresses, function(nextMailAddressCandidate, callback) {
+								if (nextAddress || !nextMailAddressCandidate) return callback();
+								if (parameters.settings.includeAddressStates[nextMailAddressCandidate.state] !== true) return callback();
+								nextAddress = nextMailAddressCandidate;
+								callback();
+							}, function(err) {
 								if (err) {
-									done = true;
-									return callback(err);
+									console.error(err);
 								}
-								else {
-									if (!mailingList.preparedMails) mailingList.preparedMails = [];
-									mailingList.preparedMails.push(mail);
-									mailingList.save(function(err) {
+
+								if (!nextAddress || !nextAddress.address || nextAddress.address.length <= 0) {
+									return callback();
+								}
+
+								console.log("Preparing mail to " + nextAddress.address);
+
+								var mail = new db.MailModel();
+								
+								mail.body = _.template(mailingList.template.content)({
+									"sender": { name: mailingList.from.name, address: mailingList.from.address },
+									"receiver": receiver.toJSON()
+								});
+
+								mail.subject = _.template(mailingList.template.subject)({
+									"sender": { name: mailingList.from.name, address: mailingList.from.address },
+									"receiver": receiver.toJSON()
+								});
+
+								mail.to = nextAddress.address.indexOf("pdiegman") >= 0 || nextAddress.address.indexOf("phildiegman") >= 0 ? nextAddress.address : mailingList.from.address;
+								mail.from = ((mailingList.from.name && mailingList.from.name.length > 0) ? ("\"" + mailingList.from.name + "\" ") : "") + "<" + mailingList.from.address + ">";
+								mail.person = receiver._id;
+								mail.dataset = datasetid;
+								mail.inMailingList = maillistid;
+
+								mail.save(function(err) {
+									if (err) {
 										done = true;
-										callback(err);
-									});
-								}
+										return callback(err);
+									}
+									else {
+										if (!mailingList.preparedMails) mailingList.preparedMails = [];
+										mailingList.preparedMails.push(mail);
+										mailingList.save(function(err) {
+											done = true;
+											callback(err);
+										});
+									}
+								});
 							});
 						});
 					}, callback);
@@ -261,6 +278,10 @@ module.exports = function(db) {
 						var mailingList = new db.MailingListModel();
 						mailingList.sendTo = personIdsToContact;
 						mailingList.dataset = datasetid;
+						mailingList.from = {
+							address: parameters.sender.address,
+							name: parameters.sender.name
+						};
 						mailingList.template = {
 							content: doc.content,
 							subject: doc.subject
@@ -308,6 +329,7 @@ module.exports = function(db) {
 											mail.from = ((parameters.sender.name && parameters.sender.name.length > 0) ? ("\"" + parameters.sender.name + "\" ") : "") + "<" + parameters.sender.address + ">";
 											mail.person = receiver._id;
 											mail.dataset = mailingList.dataset;
+											mail.inMailingList = mailingList._id;
 											mail.save(function(err) {
 												if (err) {
 													return callback(err);
@@ -503,6 +525,10 @@ module.exports = function(db) {
 						var mailingList = new db.MailingListModel();
 						mailingList.sendTo = personIdsToContact;
 						mailingList.dataset = datasetid;
+						mailingList.from = {
+							address: parameters.sender.address,
+							name: parameters.sender.name
+						};
 						mailingList.template = {
 							content: doc.content,
 							subject: doc.subject
@@ -757,6 +783,7 @@ module.exports = function(db) {
 											response.dataset = datasetid;
 											response.body = contents;
 											response.externalId = msg.attributes && msg.attributes.uid ? msg.attributes.uid : seqno;
+											response.inMailingList = maillistIdCandidate;
 
 											response.save(function(err) {
 												if (err) {

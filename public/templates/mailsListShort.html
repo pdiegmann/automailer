@@ -15,7 +15,7 @@
 		<tr>
 			<td><%= ((state.currentPage - state.firstPage) * state.pageSize + parseInt(i) + 1) %></td> 
 			<td>
-				<%= model[i].from.replace("<", "%lt;").replace(">", "%gt;") %>
+				<%= model[i].from.replace("<", "").replace(">", "") %>
 				<% if (model[i].received) { %> 
 					<% if (model[i].person) { %>
 						<br/>

@@ -11,6 +11,7 @@ module.exports = function(mongoose) {
 		received: { type: Date },
 		created: { type: Date, default: Date.now, index: true },
 		responseTo: { type: mongoose.Schema.ObjectId, ref: 'Mail', index: true },
+		inMailingList: { type: mongoose.Schema.ObjectId, ref: 'MailingList', index: true },
 		dataset: { type: mongoose.Schema.ObjectId, ref: 'Dataset', index: true, required: true }
 	});
 

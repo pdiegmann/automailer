@@ -62,6 +62,8 @@ if (!sender.smtp.quota) sender.smtp.quota = {};
 sender.smtp.quota.numberOfMails = options.sender.smtp.quota.numberOfMails || sender.smtp.quota.numberOfMails;
 sender.smtp.quota.perTimeFrame = options.sender.smtp.quota.perTimeFrame || sender.smtp.quota.perTimeFrame;
 
+console.log(sender);
+
 var smtpServer;
 var mailsSent = 0;
 var mailsFinished = 0;
@@ -75,6 +77,7 @@ function connectToSmtpServer() {
 		ssl: sender.smtp.ssl,
 		port: sender.smtp.port
 	});
+	console.log(smtpServer);
 }
 
 function processMailings() {
@@ -95,7 +98,7 @@ function processMailings() {
 
 		console.log("Mailing List has " + mailingList.sendTo.length + " receivers (persons)");
 		async.eachSeries(mailingList.preparedMails, function (mail, callback) {
-			console.log("Processing Mail to" + mail.to);
+			console.log("Processing Mail to " + mail.to);
 			var message = {
 				text: mail.body.replace(/<br\s*[\/]?>/gi, "\n").replace(/<\/?[^>]+(>|$)/g, ""), 
 				from: mail.from,
