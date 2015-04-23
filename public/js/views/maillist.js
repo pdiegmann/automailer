@@ -3,7 +3,10 @@ define(["text!templates/maillist.html", "models/MailList"], function(maillistTem
 		el: $('#content'),
 
 		events: {
-			'submit form': 'submit'
+			'submit form': 'submit',
+			'click [data-mailid][data-action="edit"]': 'edit',
+			'click [data-mailid][data-action="cancel"]': 'cancel',
+			'click [data-mailid][data-action="save"]': 'save'
 		},
 
 		initialize: function() {
@@ -18,10 +21,81 @@ define(["text!templates/maillist.html", "models/MailList"], function(maillistTem
 				"model": this.model.toJSON()
 			}));
 
-			//try { $('.summernote').summernote({ lang: "de-DE", height: 320 }); } catch(e) { console.error(e); }
-			//$(".summernote").code(this.model.content);
+			try { $('.summernote').summernote({ lang: "de-DE", height: 320 }); } catch(e) { console.error(e); }
+			$(".summernote").code(this.model.content);
 
 			return this;
+		},
+
+		edit: function(e) {
+			e.preventDefault();
+			var $e = $(e.target);
+			if (!$e.data("mailid")) $e = $e.parent();
+			if (!$e.data("mailid")) $e = $e.parent();
+
+			$('input[data-field][data-mailid="' + $e.data("mailid") + '"]').show(0);
+			$('textarea[data-field][data-mailid="' + $e.data("mailid") + '"]').siblings('.note-editor').show(0);
+			$('select[data-field][data-mailid="' + $e.data("mailid") + '"]').show(0);
+			$('[data-action="cancel"][data-mailid="' + $e.data("mailid") + '"]').show(0);
+			$('[data-action="save"][data-mailid="' + $e.data("mailid") + '"]').show(0);
+
+			$('span[data-field][data-mailid="' + $e.data("mailid") + '"]').hide(0);
+			$('[data-action="edit"][data-mailid="' + $e.data("mailid") + '"]').hide(0);
+			$('[data-action="delete"][data-mailid="' + $e.data("mailid") + '"]').hide(0);
+		},
+
+		cancel: function(e) {
+			e.preventDefault();
+			var $e = $(e.target);
+			if (!$e.data("mailid")) $e = $e.parent();
+			if (!$e.data("mailid")) $e = $e.parent();
+
+			$('input[data-field][data-mailid="' + $e.data("mailid") + '"]').hide(0);
+			$('textarea[data-field][data-mailid="' + $e.data("mailid") + '"]').siblings('.note-editor').hide(0);
+			$('select[data-field][data-mailid="' + $e.data("mailid") + '"]').hide(0);
+			$('[data-action="cancel"][data-mailid="' + $e.data("mailid") + '"]').hide(0);
+			$('[data-action="save"][data-mailid="' + $e.data("mailid") + '"]').hide(0);
+
+			$('span[data-field][data-mailid="' + $e.data("mailid") + '"]').show(0);
+			$('[data-action="edit"][data-mailid="' + $e.data("mailid") + '"]').show(0);
+			$('[data-action="delete"][data-mailid="' + $e.data("mailid") + '"]').show(0);
+		},
+
+		save: function(e) {
+			e.preventDefault();
+			var $e = $(e.target);
+			if (!$e.data("mailid")) $e = $e.parent();
+			if (!$e.data("mailid")) $e = $e.parent();
+
+			$('input[data-field][data-mailid="' + $e.data("mailid") + '"]').hide(0);
+			$('textarea[data-field][data-mailid="' + $e.data("mailid") + '"]').siblings('.note-editor').hide(0);
+			$('select[data-field][data-mailid="' + $e.data("mailid") + '"]').hide(0);
+			$('[data-action="cancel"][data-mailid="' + $e.data("mailid") + '"]').hide(0);
+			$('[data-action="save"][data-mailid="' + $e.data("mailid") + '"]').hide(0);
+
+			$('span[data-field][data-mailid="' + $e.data("mailid") + '"]').show(0);
+			$('[data-action="edit"][data-mailid="' + $e.data("mailid") + '"]').show(0);
+			$('[data-action="delete"][data-mailid="' + $e.data("mailid") + '"]').show(0);
+
+			$.each($('span[data-field][data-mailid="' + $e.data("mailid") + '"]'), function(i, span) {
+				var field = $(span).data("field");
+				var selectAsSource = false;
+				var newValue = $('input[data-field="' + field + '"][data-mailid="' + $e.data("mailid") + '"]').val();
+				if (!newValue) {
+					newValue = $('select[data-field="' + field + '"][data-mailid="' + $e.data("mailid") + '"]').val();
+					if (newValue) selectAsSource = true;
+				}
+				if (!newValue) newValue = $('textarea[data-field="' + field + '"][data-mailid="' + $e.data("mailid") + '"]').code();
+
+				if (newValue) {
+					if (!selectAsSource) {
+						$(span).html(newValue);
+					}
+					else {
+						$(span).html($('select[data-field="' + field + '"][data-mailid="' + $e.data("mailid") + '"] option:selected').text());	
+					}
+				}
+			});
 		},
 
 		submit: function(e) {
