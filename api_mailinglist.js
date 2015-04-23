@@ -51,6 +51,100 @@ module.exports = function(db) {
 			return res.send(200);
 		},
 
+		deleteMailingListItem: function(req, res, next) {
+			var datasetid = req.params.datasetid;
+			var maillistid = req.params.maillistid;
+			var mailid = req.params.mailid;
+
+			db.MailingListModel.findOne({ dataset: datasetid, _id: maillistid }, { __v: 0 })
+			.exec(function(err, maillist) {
+				if (err) {
+					console.error(err);
+					return res.send(500);
+				}
+
+				if (!maillist) {
+					return res.send(404);
+				}
+
+				db.MailModel.findOne({ dataset: datasetid, _id: mailid }, { __v: 0 })
+				.exec(function(err, mail) {
+					if (err) {
+						console.error(err);
+						return res.send(500);
+					}
+
+					if (!mail) {
+						return res.send(404);
+					}
+
+					mail.remove(function(err) {
+						if (err) {
+							console.error(err);
+							return res.send(500);
+						}
+
+						maillist.preparedMails.pull(mailid);
+
+						maillist.save(function(err) {
+							if (err) {
+								console.error(err);
+								return res.send(500);
+							}
+
+							return res.send(200);
+						});
+					});
+				});
+			});
+		},
+
+		updateMailingListItem: function(req, res, next) {
+			var datasetid = req.params.datasetid;
+			var maillistid = req.params.maillistid;
+			var mailid = req.params.mailid;
+
+			var data = req.body;
+
+			db.MailModel.findOne({ dataset: datasetid, _id: mailid }, { __v: 0 })
+			.populate("person", "-__v -raw")
+			.exec(function(err, mail) {
+				if (err) {
+					console.error(err);
+					return res.send(500);
+				}
+
+				if (!mail || !mail.person) {
+					return res.send(404);
+				}
+
+				mail.subject = data.subject;
+				mail.body = data.body;
+				mail.person.firstName = data.firstName;
+				mail.person.lastName = data.lastName;
+				mail.person.title = data.title;
+				mail.person.gender = data.gender;
+				mail.person.position = data.position;
+				mail.person.departement = data.departement;
+
+				mail.person.save(function(err) {
+					if (err) {
+						console.error(err);
+						return res.send(500);
+					}
+
+					mail.save(function(err) {
+						if (err) {
+							console.error(err);
+							return res.send(500);
+						}
+
+						return res.send(200);
+					});
+				});
+			});
+		},
+
 		getMailingLists: function(req, res, next) {
 			var start = process.hrtime();
 

@@ -133,6 +133,10 @@ app.get('/dataset/:datasetid/mail/list/:maillistid', api_mailinglists.getMailing
 
 app.post('/dataset/:datasetid/mail/list/:maillistid', api_mailinglists.setMailingList);
 
+app.post("/dataset/:datasetid/mail/list/:maillistid/update/mail/:mailid", api_mailinglists.updateMailingListItem);
+
+app.post("/dataset/:datasetid/mail/list/:maillistid/delete/mail/:mailid", api_mailinglists.deleteMailingListItem);
+
 /**** MAIL TEMPLATES ****/
 
 app.get('/dataset/:datasetid/mail/templates', api_mailtemplates.getTemplates);

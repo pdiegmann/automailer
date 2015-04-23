@@ -6,7 +6,8 @@ define(["text!templates/maillist.html", "models/MailList"], function(maillistTem
 			'submit form': 'submit',
 			'click [data-mailid][data-action="edit"]': 'edit',
 			'click [data-mailid][data-action="cancel"]': 'cancel',
-			'click [data-mailid][data-action="save"]': 'save'
+			'click [data-mailid][data-action="save"]': 'save',
+			'click [data-mailid][data-action="delete"]': 'delete'
 		},
 
 		initialize: function() {
@@ -61,11 +62,51 @@ define(["text!templates/maillist.html", "models/MailList"], function(maillistTem
 			$('[data-action="delete"][data-mailid="' + $e.data("mailid") + '"]').show(0);
 		},
 
+		delete: function(e) {
+			e.preventDefault();
+			var $e = $(e.target);
+			if (!$e.data("mailid")) $e = $e.parent();
+			if (!$e.data("mailid")) $e = $e.parent();
+
+			var $e = $(e.target);
+			if ($e.data("confirmed") == undefined) $e = $e.parent();
+			if ($e.data("confirmed") == undefined) {
+				$e = $(e.target);
+				$e.data("confirmed", false);
+			}
+			var confirmed = $e.data("confirmed");
+
+        	if (confirmed == false) {
+        		$e.html("Wirklich?");
+        		$e.data("confirmed", true);
+        	}
+        	else {
+				$('[data-action][data-mailid="' + $e.data("mailid") + '"]').addClass("disabled");
+
+				$('input[data-field][data-mailid="' + $e.data("mailid") + '"]').hide(0);
+				$('textarea[data-field][data-mailid="' + $e.data("mailid") + '"]').siblings('.note-editor').hide(0);
+				$('select[data-field][data-mailid="' + $e.data("mailid") + '"]').hide(0);
+				$('[data-action="cancel"][data-mailid="' + $e.data("mailid") + '"]').hide(0);
+				$('[data-action="save"][data-mailid="' + $e.data("mailid") + '"]').hide(0);
+
+				$('span[data-field][data-mailid="' + $e.data("mailid") + '"]').show(0);
+				$('[data-action="edit"][data-mailid="' + $e.data("mailid") + '"]').show(0);
+				$('[data-action="delete"][data-mailid="' + $e.data("mailid") + '"]').show(0);
+
+				$.post("/dataset/" + $('#dataset-selector').val() + "/mail/list/" + this.model.id + "/delete/mail/" + $e.data("mailid"), function(res) {
+					$('tr[data-mailid="' + $e.data("mailid") + '"]').remove();
+					$('[data-action][data-mailid="' + $e.data("mailid") + '"]').removeClass("disabled");
+				});
+			}
+		},
+
 		save: function(e) {
 			e.preventDefault();
 			var $e = $(e.target);
 			if (!$e.data("mailid")) $e = $e.parent();
 			if (!$e.data("mailid")) $e = $e.parent();
+
+			$('[data-action][data-mailid="' + $e.data("mailid") + '"]').addClass("disabled");
 
 			$('input[data-field][data-mailid="' + $e.data("mailid") + '"]').hide(0);
 			$('textarea[data-field][data-mailid="' + $e.data("mailid") + '"]').siblings('.note-editor').hide(0);
@@ -76,6 +117,8 @@ define(["text!templates/maillist.html", "models/MailList"], function(maillistTem
 			$('span[data-field][data-mailid="' + $e.data("mailid") + '"]').show(0);
 			$('[data-action="edit"][data-mailid="' + $e.data("mailid") + '"]').show(0);
 			$('[data-action="delete"][data-mailid="' + $e.data("mailid") + '"]').show(0);
+
+			var data = { };
 
 			$.each($('span[data-field][data-mailid="' + $e.data("mailid") + '"]'), function(i, span) {
 				var field = $(span).data("field");
@@ -88,6 +131,8 @@ define(["text!templates/maillist.html", "models/MailList"], function(maillistTem
 				if (!newValue) newValue = $('textarea[data-field="' + field + '"][data-mailid="' + $e.data("mailid") + '"]').code();
 
 				if (newValue) {
+					data[field] = newValue;
+
 					if (!selectAsSource) {
 						$(span).html(newValue);
 					}
@@ -96,18 +141,12 @@ define(["text!templates/maillist.html", "models/MailList"], function(maillistTem
 					}
 				}
 			});
-		},
+			console.log(data);
 
-		submit: function(e) {
-			return e.preventDefault();
-
-			var data = $(this.$el).find("form").serializeJSON();
-			var that = this;
-
-			$.post("/dataset/" + $('#dataset-selector').val() + "/mail/template/" + (this.model && this.model.id ? this.model.id : ""), data, function(data) {
-				Backbone.history.navigate("/!/mail/templates", true);
+			$.post("/dataset/" + $('#dataset-selector').val() + "/mail/list/" + this.model.id + "/update/mail/" + $e.data("mailid"), data, function(res) {
+				$('[data-action][data-mailid="' + $e.data("mailid") + '"]').removeClass("disabled");
 			});
-		}
+		},
 	});
 
 	return maillistView;

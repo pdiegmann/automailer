@@ -23,7 +23,7 @@
   </thead>
   <tbody>
   <% for (var j in model.preparedMails) { %>
-    <tr class="active">
+    <tr class="active" data-mailid="<%= model.preparedMails[j]._id %>">
       <td><%= (1+parseInt(j)) %></td> 
       <td>
         <span data-field="lastName" data-mailid="<%= model.preparedMails[j]._id %>"><%= model.preparedMails[j].person.lastName %></span>
@@ -58,12 +58,12 @@
       </td>
       <td>
         <button class="btn btn-warning" data-mailid="<%= model.preparedMails[j]._id %>" data-action="edit">Bearbeiten</button>
-        <button class="btn btn-danger" data-mailid="<%= model.preparedMails[j]._id %>" data-action="edit" data-confirmed="false">Löschen</button>
+        <button class="btn btn-danger" data-mailid="<%= model.preparedMails[j]._id %>" data-action="delete" data-confirmed="false">Löschen</button>
         <button class="btn btn-primary" style="display: none;" data-mailid="<%= model.preparedMails[j]._id %>" data-action="save">Speichern</button>
         <button class="btn btn-warning" style="display: none;" data-mailid="<%= model.preparedMails[j]._id %>" data-action="cancel">Abbrechen</button>
       </td>
     </tr>
-    <tr>
+    <tr data-mailid="<%= model.preparedMails[j]._id %>">
       <td>
         <i class="fa <% if (!model.preparedMails[j].sent) {
           print("fa-inbox");
@@ -76,7 +76,7 @@
         <input style="display: none; width: 100%" type="text" name="subject" data-field="subject" data-mailid="<%= model.preparedMails[j]._id %>" value="<%= model.preparedMails[j].subject %>"/>
       </td>
     </tr>
-    <tr>
+    <tr data-mailid="<%= model.preparedMails[j]._id %>">
       <td></td>
       <td colspan="8">
         <span data-field="body" data-mailid="<%= model.preparedMails[j]._id %>"><%= model.preparedMails[j].body %></span>
