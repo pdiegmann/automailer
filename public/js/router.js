@@ -1,5 +1,5 @@
-define(["views/index", "views/uploadCSV", "views/search", "views/mailtemplates", "views/mailtemplate", "views/mails", "views/maillists", "views/other", "views/notFound", "views/oops", "models/Company", "models/CompanyCollection", "models/MailTemplate", "models/MailTemplateCollection"], 
-	function(IndexView, UploadCSVView, SearchView, MailTemplatesView, MailTemplateView, MailsView, MailListsView, OtherView, NotFoundView, OopsView, Company, CompanyCollection, MailTemplate, MailTemplateCollection) {
+define(["views/index", "views/uploadCSV", "views/search", "views/mailtemplates", "views/mailtemplate", "views/mails", "views/maillists", "views/maillist", "views/other", "views/notFound", "views/oops", "models/Company", "models/CompanyCollection", "models/MailTemplate", "models/MailTemplateCollection", "models/MailList"], 
+	function(IndexView, UploadCSVView, SearchView, MailTemplatesView, MailTemplateView, MailsView, MailListsView, MailListView, OtherView, NotFoundView, OopsView, Company, CompanyCollection, MailTemplate, MailTemplateCollection, MailList) {
 	var Router = Backbone.Router.extend({
 		currentView: null,
 		initialize: function() {
@@ -17,6 +17,7 @@ define(["views/index", "views/uploadCSV", "views/search", "views/mailtemplates",
 			"!/mail/template/:id": "mailTemplate",
 			"!/mail/templates": "mailTemplates",
 			"!/mail/lists": "mailLists",
+			"!/mail/list/:id": "mailList",
 			"!/mail": "automail",
 			"!/other": "other",
 			"!/notFound": "notFound",
@@ -55,6 +56,15 @@ define(["views/index", "views/uploadCSV", "views/search", "views/mailtemplates",
 		mailLists: function() {
 			activateMenuItem('nav_maillists');
 			this.changeView(new MailListsView());
+		},
+		mailList: function(maillistid) {
+			var model = new MailList({_id: maillistid, dataset: $('#dataset-selector').val()});
+			model.updateUrl();
+			var view = new MailListView({model:model});
+			this.changeView(view);
+			model.fetch({success: function (model) {
+				//view.render(model);
+			}});
 		},
 		mailTemplates: function() {
 			activateMenuItem('nav_mailtemplates');

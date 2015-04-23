@@ -129,6 +129,10 @@ app.get('/dataset/:datasetid/mails', api_mails.getMails);
 
 app.get('/dataset/:datasetid/mail/lists', api_mailinglists.getMailingLists);
 
+app.get('/dataset/:datasetid/mail/list/:maillistid', api_mailinglists.getMailingList);
+
+app.post('/dataset/:datasetid/mail/list/:maillistid', api_mailinglists.setMailingList);
+
 /**** MAIL TEMPLATES ****/
 
 app.get('/dataset/:datasetid/mail/templates', api_mailtemplates.getTemplates);

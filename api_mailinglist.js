@@ -4,6 +4,53 @@ var mongoose = require("mongoose");
 
 module.exports = function(db) {
 	return {
+		getMailingList: function(req, res, next) {
+			var datasetid = req.params.datasetid;
+			var maillistid = req.params.maillistid;
+
+			db.MailingListModel
+			.findOne({ "_id": maillistid, "dataset": datasetid }, { __v: 0 })
+			.populate("preparedMails", "-__v")
+			.exec(function(err, doc) {
+				if (err) {
+					console.error(err);
+					return res.send(500);
+				}
+
+				if (!doc) {
+					return res.send(404);
+				}
+
+				async.each(doc.preparedMails, function(preparedMail, callback) {
+					db.PersonModel.findOne({ dataset: datasetid, "_id": preparedMail.person }, { "__v": 0, "raw": 0 })
+					.populate("company", "-__v -raw")
+					.exec(function(err, person) {
+						if (err) {
+							return callback(err);
+						}
+
+						if (!person) {
+							return callback();
+						}
+
+						preparedMail.person = person;
+						callback();
+					});
+				}, function(err) {
+					if (err) {
+						console.error(err);
+						return res.send(500);
+					}
+
+					return res.json(doc);
+				})
+			});
+		},
+
+		setMailingList: function(req, res, next) {
+			return res.send(200);
+		},
+
 		getMailingLists: function(req, res, next) {
 			var start = process.hrtime();
 

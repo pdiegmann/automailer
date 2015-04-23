@@ -35,8 +35,9 @@ module.exports = function(db) {
 
 		getTemplate: function(req, res, next) {
 			var templateid = req.params.templateid;
+			var datasetid = req.params.datasetid;
 
-			db.MailTemplateModel.findOne({ "_id": templateid }, { __v: 0 }).exec(function(err, doc) {
+			db.MailTemplateModel.findOne({ "_id": templateid, "dataset": datasetid }, { __v: 0 }).exec(function(err, doc) {
 				if (err) {
 					logger.error(err);
 					return res.send(500);

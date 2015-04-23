@@ -1,0 +1,26 @@
+<% if (model) { %>
+  <h3>MailListe von <%= moment(model.created).calendar() %></h3>
+  <h6>an <%= (model.sendTo ? model.sendTo.length : "0") %>  Personen / <%= (model.preparedMails && model.sentMails ? (model.preparedMails.length + model.sentMails.length) : "0") %> Adressen</h6>
+  <span><%= (model.sentMails ? model.sentMails.length : "0") %> 
+  <% if (model.from) { %> als "<%= model.from.name %>" <%= model.from.address %> <% } %>
+  gesendet.</span>
+  <span><%= (model.answers ? model.answers.length : "0") %> Antworten erhalten.</span>
+
+  <% for (var j in model.preparedMails) { %>
+    <li><% model.preparedMails[j].person.gender === 0 ? print("Frau ") : model.preparedMails[j].person.gender === 1 ? print("Herr ") : print("") %><%= model.preparedMails[j].person.lastName %>, <%= model.preparedMails[j].person.firstName %> 
+    <% if (model.preparedMails[j].person.title && model.preparedMails[j].person.title.length > 0) { %> 
+      (<%= model.preparedMails[j].person.title %>)
+    <% } %>
+    <% if (model.preparedMails[j].person.departement && model.preparedMails[j].person.departement.length > 0 && model.preparedMails[j].person.position && model.preparedMails[j].person.position.length > 0) { %> 
+      (<%= model.preparedMails[j].person.position %>, <%= model.preparedMails[j].person.departement %>)
+    <% } else { %>
+      <% if (model.preparedMails[j].person.departement && model.preparedMails[j].person.departement.length > 0) { %> 
+        (<%= model.preparedMails[j].person.departement %>)
+      <% } %>
+      <% if (model.preparedMails[j].person.position && model.preparedMails[j].person.position.length > 0) { %> 
+        (<%= model.preparedMails[j].person.position %>)
+      <% } %>
+    <% } %>
+    </li>
+  <% } %>
+<% } %>
