@@ -125,8 +125,10 @@ define(["Underscore", "text!templates/maillists.html", "text!templates/mailLists
 			this.showLoading();
 			var that = this;
 			$.post("/dataset/" + $("#dataset-selector").val() + "/mail/send/mailinglist/" + maillistid, params, function(res) {
-				that.hideLoading();
-				that.refresh(e);
+				setTimeout(function() { 
+					that.hideLoading();
+					that.refresh(e);
+				}, 2500);
 			});
 		},
 
@@ -142,8 +144,10 @@ define(["Underscore", "text!templates/maillists.html", "text!templates/mailLists
 			this.showLoading();
 			var that = this;
 			$.post("/dataset/" + $("#dataset-selector").val() + "/mail/stockup/mailinglist/" + maillistid, params, function(res) {
-				that.hideLoading();
-				that.refresh(e);
+				setTimeout(function() { 
+					that.hideLoading();
+					that.refresh(e);
+				}, 2500);
 			});
 		},
 

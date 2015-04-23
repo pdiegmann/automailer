@@ -97,11 +97,15 @@ app.delete('/dataset/:datasetid', api_dataset.delete);
 
 app.put('/dataset/:datasetid/upload', api_dataset.upload);
 
+app.get('/dataset/:datasetid/randomizeOrder', api_company.randomizeOrder);
+
 app.get('/dataset/:datasetid/names/:gender/put/:names', api_dataset.initNamesWithGenders);
 
 app.get('/dataset/:datasetid/persons/guess/gender', api_dataset.guessGender);
 
 app.get('/dataset/:datasetid/filter', api_company.filter);
+
+app.get('/dataset/:datasetid/companies/exclude/publisher/:publisher/:publisherids', api_company.exclude);
 
 /**** MAILINGS ****/
 
@@ -124,8 +128,6 @@ app.get('/dataset/:datasetid/mails', api_mails.getMails);
 /**** MAILINGLISTS ****/
 
 app.get('/dataset/:datasetid/mail/lists', api_mailinglists.getMailingLists);
-
-app.get('/dataset/:datasetid/randomizeOrder/mails/list/:mailinglistid', api_mailinglists.randomizeOrder);
 
 /**** MAIL TEMPLATES ****/
 

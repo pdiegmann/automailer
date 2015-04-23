@@ -2,6 +2,7 @@
 	<div class="col-xs-12 col-sm-12 col-md-7 col-lg-7">
 		<h3>Starte hier deine Suche!</h3>
 		<p>Nutze die Seitenleiste um die Suche anzupassen.</p>
+		<a class="btn btn-block btn-lg btn-primary" id="randomizeCompanyOrder">Zufalls-Sortierung der Unternehmen</a>
 	</div>
 	<div class="col-xs-12 col-sm-12 col-md-5 col-lg-5">
 		<form class="form-horizontal" id="mailsettings">
@@ -10,6 +11,7 @@
 					<li role="presentation" class="active"><a href="#mailaccount" aria-controls="mailaccount" role="tab" data-toggle="tab">Account</a></li>
 					<!--<li role="presentation"><a href="#smtpserver" aria-controls="smtpserver" role="tab" data-toggle="tab">SMTP</a></li>
 					<li role="presentation"><a href="#mailquota" aria-controls="mailquota" role="tab" data-toggle="tab">Quota</a></li>-->
+					<li role="presentation"><a href="#countContacts" aria-controls="countContacts" role="tab" data-toggle="tab">Anzahl Kontakte</a></li>
 					<li role="presentation"><a href="#settings" aria-controls="settings" role="tab" data-toggle="tab">Einstellungen</a></li>
 					<li role="presentation"><a href="#mailtemplate" aria-controls="mailtemplate" role="tab" data-toggle="tab">Vorlage</a></li>
 				</ul>
@@ -86,6 +88,20 @@
 						</div>
 					</div>
 				</div>-->
+				<div role="tabpanel" class="tab-pane" id="countContacts">
+					<div class="form-group form-group-sm">
+						<label for="mail[settings][countContacts][skip]:number" class="col-sm-2 control-label">Überspringen:</label>
+						<div class="col-sm-9 col-sm-offset-1" style="margin-top: 0.33em;">
+							<input class="form-control" type="number" min="-1" name="mail[settings][skip]:number" placeholder="Anzahl Firmen" />
+						</div>
+					</div>
+					<div class="form-group form-group-sm">
+						<label for="mail[settings][countContacts][take]:number" class="col-sm-2 control-label">Nehmen:</label>
+						<div class="col-sm-9 col-sm-offset-1" style="margin-top: 0.33em;">
+							<input class="form-control" type="number" min="-1" name="mail[settings][take]:number" placeholder="Anzahl Firmen" />
+						</div>
+					</div>
+				</div>
 				<div role="tabpanel" class="tab-pane" id="settings">
 					<!--<div class="form-group form-group-sm">
 						<div class="checkbox">

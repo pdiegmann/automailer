@@ -5,6 +5,40 @@ var mongoose = require("mongoose");
 module.exports = function(db) {
 
 	return {
+
+		exclude: function(req, res, next) {
+			var datasetid = req.params.datasetid;
+			var publisher = req.params.publisher;
+
+			var publisherIds = req.params.publisherids;
+			if (!publisherIds || publisherIds.length <= 0) return res.send(500);
+			var publisherIdSegments = publisherIds.split(',');
+			publisherIds = [];
+			for (var i = 0; i < publisherIdSegments.length; i++) {
+				publisherIds.push(publisherIdSegments[i].trim());
+			}
+
+			async.each(publisherIds, function(publisherId, callback) {
+				db.CompanyModel.findOne({ dataset: datasetid, publisherId: publisherId, publisher: publisher}, function(err, company) {
+					if (err) {
+						return callback(err);
+					}
+
+					if (!company) {
+						return callback();
+					}
+
+					company.active = false;
+					company.save(callback);
+				});
+			}, function(err) {
+				if (err) {
+					console.error(err);
+					return res.send(500);
+				}
+				return res.send(200);
+			});
+		},
 		
 		filter: function(req, res, next) {
 			var start = process.hrtime();
@@ -37,10 +71,10 @@ module.exports = function(db) {
 
 			var query;
 			if (orQueries.length > 0) {
-				query = { dataset: datasetid, $or: orQueries };
+				query = { dataset: datasetid, "active": true, $or: orQueries };
 			}
 			else {
-				query = { dataset: datasetid };
+				query = { dataset: datasetid, "active": true };
 			}
 
 			console.log(query);
@@ -96,13 +130,14 @@ module.exports = function(db) {
 
 				var queryCompany;
 				if (orQueriesCompany.length > 0) 
-					queryCompany = { dataset: datasetid, executives: { $in: personIds }, $or: orQueriesCompany}
+					queryCompany = { dataset: datasetid, executives: { $in: personIds }, "active": true, $or: orQueriesCompany}
 				else
-					queryCompany = { dataset: datasetid, executives: { $in: personIds }}
+					queryCompany = { dataset: datasetid, executives: { $in: personIds }, "active": true}
 
 				db.CompanyModel.count(queryCompany, function(err, count) {
 					db.CompanyModel.find(queryCompany, { "raw": 0, "__v": 0 })
 					.populate("executives", "-raw -__v")
+					.sort({ orderNr: 1 })
 					.limit(take)
 					.skip(skip)
 					.exec(function (err, companies) {
@@ -119,6 +154,50 @@ module.exports = function(db) {
 						return res.json({ duration: parseFloat(Math.round(elapsed).toFixed(0)), take: take, skip: skip, count: companies.length, personCount: personIds.length, total: count, results: companies});
 					});
 				});
+			});
+		},
+
+		randomizeOrder: function(req, res, next) {
+			var datasetid = req.params.datasetid;
+
+			db.CompanyModel.find({ dataset: datasetid, "active": true }, { __v: 0, raw: 0 }, function(err, companies) {
+				if (err) {
+					console.error(err);
+					return res.send(500);
+				}
+
+				if (!companies) {
+					return res.send(404);
+				}
+
+				var companiesLength = companies.length;
+				var indexPool = new Array(companiesLength);
+				for (var i = 0; i < companiesLength; i++) {
+					indexPool[i] = i;
+				}
+
+				var getNumber = function () {
+					if (indexPool.length == 0) {
+						throw "No numbers left";
+					}
+					var index = Math.floor(indexPool.length * Math.random());
+					var drawn = indexPool.splice(index, 1);
+					return drawn[0];
+				}
+
+				async.each(companies, function(company, callback) {
+					company.orderNr = getNumber();
+					console.log((companiesLength - indexPool.length) + " " + company.name + " " + company.orderNr);
+					company.save(callback);
+				}, function(err) {
+					if (err) {
+						console.error(err);
+						return res.send(500);
+					}
+					else {
+						res.send(200);
+					}
+				})
 			});
 		}
 	};

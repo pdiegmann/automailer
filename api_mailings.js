@@ -142,7 +142,9 @@ module.exports = function(db) {
 				},
 				"settings": {
 					"includeAddressStates": [true, false, false, false],
-					"sequential": false
+					"sequential": false,
+					"skip": 0,
+					"take": 100
 				}
 			};
 
@@ -158,6 +160,8 @@ module.exports = function(db) {
 			for (var i = 0; i < parameters.settings.includeAddressStates.length; i++) {
 				parameters.settings.includeAddressStates[i] = parameters.settings.includeAddressStates[i] === "true" || parameters.settings.includeAddressStates[i] === "on" ? true : false;
 			}
+			parameters.settings.skip = parseInt(parameters.settings.skip);
+			parameters.settings.take = parseInt(parameters.settings.take);
 
 			var departements = stringArrayToRegexArray(executive.departement);
 			var positions = stringArrayToRegexArray(executive.position);
@@ -176,10 +180,10 @@ module.exports = function(db) {
 
 			var query;
 			if (orQueries.length > 0) {
-				query = { dataset: datasetid, $or: orQueries };
+				query = { dataset: datasetid, "active": true, $or: orQueries };
 			}
 			else {
-				query = { dataset: datasetid };
+				query = { dataset: datasetid, "active": true };
 			}
 
 			var personIdsToContact = [];
@@ -239,11 +243,25 @@ module.exports = function(db) {
 
 				var queryCompany;
 				if (orQueriesCompany.length > 0) 
-					queryCompany = { dataset: datasetid, executives: { $in: personIds }, $or: orQueriesCompany}
+					queryCompany = { dataset: datasetid, executives: { $in: personIds }, "active": true, $or: orQueriesCompany}
 				else
-					queryCompany = { dataset: datasetid, executives: { $in: personIds }}
+					queryCompany = { dataset: datasetid, executives: { $in: personIds }, "active": true}
 
-				db.CompanyModel.find(queryCompany, { "raw": 0, "__v": 0 }, function(err, docs) {
+				console.log("skip: " + parameters.settings.skip + " take: " + parameters.settings.take);
+				db.CompanyModel.find(queryCompany, { "raw": 0, "__v": 0 })
+				.skip(parameters.settings.skip)
+				.limit(parameters.settings.take)
+				.sort({ "orderNr": 1 })
+				.exec(function(err, docs) {
+					if (err) {
+						console.error(err);
+					}
+
+					if (!docs || docs.length <= 0) {
+						console.error("no companies found!");
+					}
+
+					console.log(docs);
 					for (var i in docs) {
 						var company = docs[i];
 						if (!company || !company.executives || company.executives.length <= 0) continue;
@@ -294,7 +312,7 @@ module.exports = function(db) {
 							}
 
 							async.eachSeries(mailingList.sendTo, function (receiver, callback) {
-								db.PersonModel.findOne({ "dataset": datasetid, "_id": receiver }, { __v: 0, raw: 0 }, function(err, receiver) {
+								db.PersonModel.findOne({ "dataset": datasetid, "active": true, "_id": receiver }, { __v: 0, raw: 0 }, function(err, receiver) {
 									if (err) {
 										return callback(err);
 									}
@@ -423,10 +441,10 @@ module.exports = function(db) {
 
 			var query;
 			if (orQueries.length > 0) {
-				query = { dataset: datasetid, $or: orQueries };
+				query = { dataset: datasetid, "active": true, $or: orQueries };
 			}
 			else {
-				query = { dataset: datasetid };
+				query = { dataset: datasetid, "active": true };
 			}
 
 			var personIdsToContact = [];
@@ -486,9 +504,9 @@ module.exports = function(db) {
 
 				var queryCompany;
 				if (orQueriesCompany.length > 0) 
-					queryCompany = { dataset: datasetid, executives: { $in: personIds }, $or: orQueriesCompany}
+					queryCompany = { dataset: datasetid, executives: { $in: personIds }, "active": true, $or: orQueriesCompany}
 				else
-					queryCompany = { dataset: datasetid, executives: { $in: personIds }}
+					queryCompany = { dataset: datasetid, executives: { $in: personIds }, "active": true}
 
 				db.CompanyModel.find(queryCompany, { "raw": 0, "__v": 0 }, function(err, docs) {
 					for (var i in docs) {
@@ -831,7 +849,7 @@ module.exports = function(db) {
 														return checkForReturn();
 													});
 
-													db.PersonModel.findOne({ "dataset": datasetid, "_id": originalMail.person }, function(err, person) {
+													db.PersonModel.findOne({ "dataset": datasetid, "active": true, "_id": originalMail.person }, function(err, person) {
 														if (err) {
 															console.error(err);
 														}
@@ -855,7 +873,7 @@ module.exports = function(db) {
 													});
 												}
 												else {
-													db.PersonModel.find({ "dataset": datasetid, "mailAddresses.address": mail.from[0].address }, function(err, persons) {
+													db.PersonModel.find({ "dataset": datasetid, "active": true, "mailAddresses.address": mail.from[0].address }, function(err, persons) {
 														if (err) {
 															console.error(err);
 														}

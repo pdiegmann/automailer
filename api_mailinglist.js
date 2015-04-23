@@ -4,69 +4,6 @@ var mongoose = require("mongoose");
 
 module.exports = function(db) {
 	return {
-		randomizeOrder: function(req, res, next) {
-			var datasetid = req.params.datasetid;
-			var mailinglistid = req.params.mailinglistid; 
-
-			db.MailingListModel.findOne({ dataset: datasetid, "_id": mailinglistid }, { __v: 0 }, function(err, mailingList) {
-				if (err) {
-					console.error(err);
-					return res.send(500);
-				}
-
-				if (!mailingList) {
-					return res.send(404);
-				}
-
-				db.CompanyModel.find({ dataset: datasetid, executives: { $in: mailingList.sendTo } }, { __v: 0, raw: 0 }, function(err, companies) {
-					if (err) {
-						console.error(err);
-						return res.send(500);
-					}
-
-					if (!companies) {
-						return res.send(404);
-					}
-
-					var companiesLength = companies.length;
-					var indexPool = new Array(companiesLength);
-					for (var i = 0; i < companiesLength; i++) {
-						indexPool[i] = i;
-					}
-
-					var getNumber = function () {
-						if (indexPool.length == 0) {
-							throw "No numbers left";
-						}
-						var index = Math.floor(indexPool.length * Math.random());
-						var drawn = indexPool.splice(index, 1);
-						return drawn[0];
-					}
-
-					async.each(companies, function(company, callback) {
-						company.orderNr = getNumber();
-						company.save(function(err) {
-							if (err) {
-								console.error(err);
-								callback(err);
-							}
-							else {
-								callback();
-							}
-						})
-					}, function(err) {
-						if (err) {
-							console.error(err);
-							return res.send(500);
-						}
-						else {
-							res.send(200);
-						}
-					})
-				});
-			});
-		},
-
 		getMailingLists: function(req, res, next) {
 			var start = process.hrtime();
 
@@ -80,7 +17,13 @@ module.exports = function(db) {
 
 			db.MailingListModel.count({ dataset: datasetid }, function(err, count) {
 				console.log("count:" + count);
-				db.MailingListModel.find({ dataset: datasetid }, { __v: 0 }).sort({ created: -1 }).populate("sendTo", "-__v").populate("sentMails", "-__v").populate("answers", "-__v").limit(take).skip(skip).exec(function(err, docs) {
+				db.MailingListModel.find({ dataset: datasetid }, { __v: 0 }).sort({ created: -1 })
+				//.populate("sendTo", "-__v")
+				//.populate("sentMails", "-__v")
+				//.populate("answers", "-__v")
+				.limit(take)
+				.skip(skip)
+				.exec(function(err, docs) {
 					if (err) {
 						logger.error(err);
 						return res.send(500);
@@ -90,6 +33,7 @@ module.exports = function(db) {
 						return res.send(404);
 					}
 
+					/*
 					async.each(docs, function(doc, callback) {
 						if (!doc || !doc.sendTo) {
 							return callback();
@@ -100,7 +44,7 @@ module.exports = function(db) {
 								return callbackDeep();
 							}
 
-							db.CompanyModel.findOne({ "_id": person.company }, { "__v": 0, "raw": 0 }, function(err, company) {
+							db.CompanyModel.findOne({ "_id": person.company, "dataset": datasetid, "active": true }, { "__v": 0, "raw": 0 }, function(err, company) {
 								if (err) {
 									console.error(err);
 									callbackDeep();
@@ -132,6 +76,10 @@ module.exports = function(db) {
 							return res.json({ duration: parseFloat(Math.round(elapsed).toFixed(0)), take: take, skip: skip, count: docs.length, total: count, results: docs});
 						}
 					});
+					*/
+
+					var elapsed = process.hrtime(start)[1] / 1000000; // divide by a million to get nano to milli
+					return res.json({ duration: parseFloat(Math.round(elapsed).toFixed(0)), take: take, skip: skip, count: docs.length, total: count, results: docs});
 				});
 			});
 		}

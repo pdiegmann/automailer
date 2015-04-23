@@ -158,7 +158,7 @@ module.exports = function(db) {
 			var names = req.params.names; //req.param("names", "");
 			if (!names || names.length <= 0) return res.send(500);
 			var nameSegments = names.split(',');
-			var names = [];
+			names = [];
 			for (var i = 0; i < nameSegments.length; i++) {
 				names.push(nameSegments[i].trim());
 			}
@@ -189,7 +189,7 @@ module.exports = function(db) {
 		guessGender: function(req, res, next) {
 			var datasetid = req.params.datasetid;
 
-			db.PersonModel.find({ "dataset": datasetid }, function(err, persons) {
+			db.PersonModel.find({ "dataset": datasetid, "active": true }, function(err, persons) {
 				if (err) {
 					console.error(err);
 					return res.send(500);

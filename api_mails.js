@@ -31,7 +31,7 @@ module.exports = function(db) {
 							return callback();
 						}
 
-						db.CompanyModel.findOne({ "_id": doc.person.company }, { "__v": 0, "raw": 0 }, function(err, company) {
+						db.CompanyModel.findOne({ "_id": doc.person.company, "dataset":datasetid , "active": true }, { "__v": 0, "raw": 0 }, function(err, company) {
 							if (err) {
 								console.error(err);
 								callback();
@@ -61,7 +61,7 @@ module.exports = function(db) {
 			var addressid = req.params.addressid;
 			var state = req.param("state", -1);
 
-			db.PersonModel.findOne({ "dataset": datasetid, "mailAddresses._id": addressid }).exec(function(err, doc) {
+			db.PersonModel.findOne({ "dataset": datasetid, "active": true, "mailAddresses._id": addressid }).exec(function(err, doc) {
 				if (err) {
 					logger.error(err);
 					return res.send(500);

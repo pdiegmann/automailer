@@ -9,7 +9,8 @@ define(["Underscore", "text!templates/search.html", "text!templates/companyListS
 			'click [data-gotoPage]': 'gotoPage',
 			'click .setmailaddressstate': 'setMailAddressState',
 			'click #prepareMails': 'prepareMails',
-			'click #sendMails': 'sendMails'
+			'click #sendMails': 'sendMails',
+			'click #randomizeCompanyOrder': "randomizeCompanyOrder"
 		},
 
 		initialize: function() {
@@ -306,6 +307,17 @@ define(["Underscore", "text!templates/search.html", "text!templates/companyListS
 	        		$e.text("Neue Mailing-Liste angelegt!");
 				});
         	}
+		},
+
+		randomizeCompanyOrder: function(e) {
+			e.preventDefault();
+			var that = this;
+			this.showLoading();
+			$.get("/dataset/" + $("#dataset-selector").val() + "/randomizeOrder", function(res) {
+				that.collection.getFirstPage().done(function() {
+					that.doneFetchingPage();
+				});
+			});
 		},
 
 		hideLoading: function() {
