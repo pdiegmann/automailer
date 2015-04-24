@@ -5,6 +5,7 @@ define(["text!templates/maillist.html", "text!templates/mailListShort.html", "mo
 
 		events: {
 			'submit form': 'submit',
+			'click [data-gotoPage]': 'gotoPage',
 			'click [data-mailid][data-action="edit"]': 'edit',
 			'click [data-mailid][data-action="cancel"]': 'cancel',
 			'click [data-mailid][data-action="save"]': 'save',
@@ -56,9 +57,6 @@ define(["text!templates/maillist.html", "text!templates/mailListShort.html", "mo
 			$('.results').html(t);
 
 			this.renderPagination();
-
-			try { $('.summernote').summernote({ lang: "de-DE", height: 320 }); } catch(e) { console.error(e); }
-			//$(".summernote").code(this.model.content);
 		},
 
 		renderPagination: function(collection) {
@@ -109,6 +107,10 @@ define(["text!templates/maillist.html", "text!templates/mailListShort.html", "mo
 			var $e = $(e.target);
 			if (!$e.data("mailid")) $e = $e.parent();
 			if (!$e.data("mailid")) $e = $e.parent();
+
+			try { 
+				$('.summernote[data-mailid="' + $e.data("mailid") + '"]').summernote({ lang: "de-DE", height: 320 }); 
+			} catch(e) { console.error(e); }
 
 			$('input[data-field][data-mailid="' + $e.data("mailid") + '"]').show(0);
 			$('textarea[data-field][data-mailid="' + $e.data("mailid") + '"]').siblings('.note-editor').show(0);

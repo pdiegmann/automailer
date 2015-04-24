@@ -14,7 +14,7 @@
 </thead>
 <tbody>
 <% for (var j in model) { %>
-  <% if (!model[j].person) continue; %>
+  <% if (!model[j].person) { console.log(j + ": no person"); continue; } %>
   <tr class="active" data-mailid="<%= model[j]._id %>">
     <td><%= ((state.currentPage - state.firstPage) * state.pageSize + parseInt(j) + 1) %></td> 
     <td>

@@ -101,6 +101,7 @@ module.exports = function(db) {
 
 							preparedMail.person = person;
 							preparedMails[i] = preparedMail;
+							i++;
 
 							callback();
 						});
