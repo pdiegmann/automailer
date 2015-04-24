@@ -5,86 +5,8 @@
   <% if (model.from) { %> als "<%= model.from.name %>" <%= model.from.address %> <% } %>
   gesendet.</span>
   <span><%= (model.answers ? model.answers.length : "0") %> Antworten erhalten.</span>
-
   <nav><ul class="pagination"></ul></nav>
-  <table class="table">
-  <thead>
-    <tr>
-      <th></th>
-      <th>Nachname</th>
-      <th>Vorname</th>
-      <th>m/w</th>
-      <th>Titel</th>
-      <th>Abteilung</th>
-      <th>Position</th>
-      <th>Unternehmen</th>
-      <th></th>
-    </tr>
-  </thead>
-  <tbody>
-  <% for (var j in model.preparedMails) { %>
-    <tr class="active" data-mailid="<%= model.preparedMails[j]._id %>">
-      <td><%= (1+parseInt(j)) %></td> 
-      <td>
-        <span data-field="lastName" data-mailid="<%= model.preparedMails[j]._id %>"><%= model.preparedMails[j].person.lastName %></span>
-        <input style="display: none;" type="text" name="lastName" data-field="lastName" data-mailid="<%= model.preparedMails[j]._id %>" value="<%= model.preparedMails[j].person.lastName %>"/>
-      </td>
-      <td>
-        <span data-field="firstName" data-mailid="<%= model.preparedMails[j]._id %>"><%= model.preparedMails[j].person.firstName %></span>
-        <input style="display: none;" type="text" name="firstName" data-field="firstName" data-mailid="<%= model.preparedMails[j]._id %>" value="<%= model.preparedMails[j].person.firstName %>"/>
-      </td>
-      <td>
-        <span data-field="gender" data-mailid="<%= model.preparedMails[j]._id %>"><% (model.preparedMails[j].person.gender === 0 ? print("w") : (model.preparedMails[j].person.gender === 1 ? print("m") : print(""))) %></span>
-
-        <select class="form-control" style="display: none;" name="gender" data-field="gender" data-mailid="<%= model.preparedMails[j]._id %>">
-          <option value="0" <% model.preparedMails[j].person.gender === 0 ? print("selected") : print("") %>>w</option>
-          <option value="1" <% model.preparedMails[j].person.gender === 1 ? print("selected") : print("") %>>m</option>
-        </select>
-      </td>
-      <td>
-        <span data-field="title" data-mailid="<%= model.preparedMails[j]._id %>"><%= model.preparedMails[j].person.title %></span>
-        <input style="display: none; width: 75px;" type="text" name="title" data-field="title" data-mailid="<%= model.preparedMails[j]._id %>" value="<%= model.preparedMails[j].person.title %>"/>
-      </td>
-      <td>
-        <span data-field="departement" data-mailid="<%= model.preparedMails[j]._id %>"><%= model.preparedMails[j].person.departement %></span>
-        <input style="display: none;" type="text" name="departement" data-field="departement" data-mailid="<%= model.preparedMails[j]._id %>" value="<%= model.preparedMails[j].person.departement %>"/>
-      </td>
-      <td>
-        <span data-field="position" data-mailid="<%= model.preparedMails[j]._id %>"><%= model.preparedMails[j].person.position %></span>
-        <input style="display: none;" type="text" name="position" data-field="position" data-mailid="<%= model.preparedMails[j]._id %>" value="<%= model.preparedMails[j].person.position %>"/>
-      </td>
-      <td>
-        <%= (model.preparedMails[j].person.company ? model.preparedMails[j].person.company.name : "") %>
-      </td>
-      <td>
-        <button class="btn btn-warning" data-mailid="<%= model.preparedMails[j]._id %>" data-action="edit">Bearbeiten</button>
-        <button class="btn btn-danger" data-mailid="<%= model.preparedMails[j]._id %>" data-action="delete" data-confirmed="false">Löschen</button>
-        <button class="btn btn-primary" style="display: none;" data-mailid="<%= model.preparedMails[j]._id %>" data-action="save">Speichern</button>
-        <button class="btn btn-warning" style="display: none;" data-mailid="<%= model.preparedMails[j]._id %>" data-action="cancel">Abbrechen</button>
-      </td>
-    </tr>
-    <tr data-mailid="<%= model.preparedMails[j]._id %>">
-      <td>
-        <i class="fa <% if (!model.preparedMails[j].sent) {
-          print("fa-inbox");
-        } else {
-          print("fa-paper-plane");
-        } %>"></i>
-      </td>
-      <td colspan="8">
-        <span data-field="subject" data-mailid="<%= model.preparedMails[j]._id %>"><%= model.preparedMails[j].subject %></span>
-        <input style="display: none; width: 100%" type="text" name="subject" data-field="subject" data-mailid="<%= model.preparedMails[j]._id %>" value="<%= model.preparedMails[j].subject %>"/>
-      </td>
-    </tr>
-    <tr data-mailid="<%= model.preparedMails[j]._id %>">
-      <td></td>
-      <td colspan="8">
-        <span data-field="body" data-mailid="<%= model.preparedMails[j]._id %>"><%= model.preparedMails[j].body %></span>
-        <textarea class="summernote hidden" type="text" name="body" data-field="body" data-mailid="<%= model.preparedMails[j]._id %>"><%= model.preparedMails[j].body %></textarea>
-      </td>
-    </tr>
-  <% } %>
-  </tbody>
+  <table class="table results">
   </table>
   <nav><ul class="pagination"></ul></nav>
 <% } %>

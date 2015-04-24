@@ -129,7 +129,9 @@ app.get('/dataset/:datasetid/mails', api_mails.getMails);
 
 app.get('/dataset/:datasetid/mail/lists', api_mailinglists.getMailingLists);
 
-app.get('/dataset/:datasetid/mail/list/:maillistid', api_mailinglists.getMailingList);
+app.get('/dataset/:datasetid/mail/list/:maillistid/all', api_mailinglists.getMailingList);
+
+app.get('/dataset/:datasetid/mail/list/:maillistid', api_mailinglists.getMailingListItems);
 
 app.post('/dataset/:datasetid/mail/list/:maillistid', api_mailinglists.setMailingList);
 

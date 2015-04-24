@@ -47,6 +47,79 @@ module.exports = function(db) {
 			});
 		},
 
+		getMailingListItems: function(req, res, next) {
+			var start = process.hrtime();
+
+			var datasetid = req.params.datasetid;
+			var maillistid = req.params.maillistid;
+
+			var take = req.param("take", 0);
+			if (isNaN(take) || take <= 0 || take > 500) take = 500;
+			take = parseInt(take);
+			var skip = req.param("skip", 0);
+			if (isNaN(skip) || skip < 0) skip = 0;
+			skip = parseInt(skip);
+			
+			db.MailingListModel
+			.aggregate([
+				{ $match: { _id: new mongoose.Types.ObjectId(maillistid), dataset: new mongoose.Types.ObjectId(datasetid) } }, 
+				{ $project: { count: { $size: "$preparedMails" } } }
+			], function (err, aggregation) {
+				if (err) {
+					console.error(err);
+				}
+				var count = 0;
+				if (aggregation && aggregation.length > 0 && aggregation[0].count && !isNaN(aggregation[0].count)) count = aggregation[0].count;
+				
+				db.MailingListModel
+				.findOne({ "_id": maillistid, "dataset": datasetid }, { __v: 0, preparedMails: { $slice: [skip, take] } })
+				.populate("preparedMails", "-__v")
+				.exec(function(err, doc) {
+					if (err) {
+						console.error(err);
+						return res.send(500);
+					}
+
+					if (!doc) {
+						return res.send(404);
+					}
+
+					var preparedMails = new Array(doc.preparedMails.length);
+					var i = 0;
+
+					async.each(doc.preparedMails, function(preparedMail, callback) {
+						db.PersonModel.findOne({ dataset: datasetid, "_id": preparedMail.person }, { "__v": 0, "raw": 0 })
+						.populate("company", "-__v -raw")
+						.exec(function(err, person) {
+							if (err) {
+								return callback(err);
+							}
+
+							if (!person) {
+								return callback();
+							}
+
+							preparedMail.person = person;
+							preparedMails[i] = preparedMail;
+
+							callback();
+						});
+					}, function(err) {
+						if (err) {
+							console.error(err);
+							return res.send(500);
+						}
+
+						doc.preparedMails = undefined;
+
+						var elapsed = process.hrtime(start)[1] / 1000000; // divide by a million to get nano to milli
+						return res.json({ duration: parseFloat(Math.round(elapsed).toFixed(0)), take: take, skip: skip, count: preparedMails.length, total: count, results: preparedMails, mailingList: doc });
+						//return res.json(doc);
+					})
+				});
+			});
+		},
+
 		setMailingList: function(req, res, next) {
 			return res.send(200);
 		},

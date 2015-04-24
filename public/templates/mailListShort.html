@@ -1,0 +1,80 @@
+<% if (model && model.length > 0) { %>
+<thead>
+  <tr>
+    <th></th>
+    <th>Nachname</th>
+    <th>Vorname</th>
+    <th>m/w</th>
+    <th>Titel</th>
+    <th>Abteilung</th>
+    <th>Position</th>
+    <th>Unternehmen</th>
+    <th></th>
+  </tr>
+</thead>
+<tbody>
+<% for (var j in model) { %>
+  <% if (!model[j].person) continue; %>
+  <tr class="active" data-mailid="<%= model[j]._id %>">
+    <td><%= ((state.currentPage - state.firstPage) * state.pageSize + parseInt(j) + 1) %></td> 
+    <td>
+      <span data-field="lastName" data-mailid="<%= model[j]._id %>"><%= model[j].person.lastName %></span>
+      <input style="display: none;" type="text" name="lastName" data-field="lastName" data-mailid="<%= model[j]._id %>" value="<%= model[j].person.lastName %>"/>
+    </td>
+    <td>
+      <span data-field="firstName" data-mailid="<%= model[j]._id %>"><%= model[j].person.firstName %></span>
+      <input style="display: none;" type="text" name="firstName" data-field="firstName" data-mailid="<%= model[j]._id %>" value="<%= model[j].person.firstName %>"/>
+    </td>
+    <td>
+      <span data-field="gender" data-mailid="<%= model[j]._id %>"><% (model[j].person.gender === 0 ? print("w") : (model[j].person.gender === 1 ? print("m") : print(""))) %></span>
+
+      <select class="form-control" style="display: none;" name="gender" data-field="gender" data-mailid="<%= model[j]._id %>">
+        <option value="0" <% model[j].person.gender === 0 ? print("selected") : print("") %>>w</option>
+        <option value="1" <% model[j].person.gender === 1 ? print("selected") : print("") %>>m</option>
+      </select>
+    </td>
+    <td>
+      <span data-field="title" data-mailid="<%= model[j]._id %>"><%= model[j].person.title %></span>
+      <input style="display: none; width: 75px;" type="text" name="title" data-field="title" data-mailid="<%= model[j]._id %>" value="<%= model[j].person.title %>"/>
+    </td>
+    <td>
+      <span data-field="departement" data-mailid="<%= model[j]._id %>"><%= model[j].person.departement %></span>
+      <input style="display: none;" type="text" name="departement" data-field="departement" data-mailid="<%= model[j]._id %>" value="<%= model[j].person.departement %>"/>
+    </td>
+    <td>
+      <span data-field="position" data-mailid="<%= model[j]._id %>"><%= model[j].person.position %></span>
+      <input style="display: none;" type="text" name="position" data-field="position" data-mailid="<%= model[j]._id %>" value="<%= model[j].person.position %>"/>
+    </td>
+    <td>
+      <%= (model[j].person.company ? model[j].person.company.name : "") %>
+    </td>
+    <td>
+      <button class="btn btn-warning" data-mailid="<%= model[j]._id %>" data-action="edit">Bearbeiten</button>
+      <button class="btn btn-danger" data-mailid="<%= model[j]._id %>" data-action="delete" data-confirmed="false">Löschen</button>
+      <button class="btn btn-primary" style="display: none;" data-mailid="<%= model[j]._id %>" data-action="save">Speichern</button>
+      <button class="btn btn-warning" style="display: none;" data-mailid="<%= model[j]._id %>" data-action="cancel">Abbrechen</button>
+    </td>
+  </tr>
+  <tr data-mailid="<%= model[j]._id %>">
+    <td>
+      <i class="fa <% if (!model[j].sent) {
+        print("fa-inbox");
+      } else {
+        print("fa-paper-plane");
+      } %>"></i>
+    </td>
+    <td colspan="8">
+      <span data-field="subject" data-mailid="<%= model[j]._id %>"><%= model[j].subject %></span>
+      <input style="display: none; width: 100%" type="text" name="subject" data-field="subject" data-mailid="<%= model[j]._id %>" value="<%= model[j].subject %>"/>
+    </td>
+  </tr>
+  <tr data-mailid="<%= model[j]._id %>">
+    <td></td>
+    <td colspan="8">
+      <span data-field="body" data-mailid="<%= model[j]._id %>"><%= model[j].body %></span>
+      <textarea class="summernote hidden" type="text" name="body" data-field="body" data-mailid="<%= model[j]._id %>"><%= model[j].body %></textarea>
+    </td>
+  </tr>
+<% } %>
+</tbody>
+<% } %>

@@ -1,5 +1,5 @@
-define(["views/index", "views/uploadCSV", "views/search", "views/mailtemplates", "views/mailtemplate", "views/mails", "views/maillists", "views/maillist", "views/other", "views/notFound", "views/oops", "models/Company", "models/CompanyCollection", "models/MailTemplate", "models/MailTemplateCollection", "models/MailList"], 
-	function(IndexView, UploadCSVView, SearchView, MailTemplatesView, MailTemplateView, MailsView, MailListsView, MailListView, OtherView, NotFoundView, OopsView, Company, CompanyCollection, MailTemplate, MailTemplateCollection, MailList) {
+define(["views/index", "views/uploadCSV", "views/search", "views/mailtemplates", "views/mailtemplate", "views/mails", "views/maillists", "views/maillist", "views/other", "views/notFound", "views/oops", "models/Company", "models/CompanyCollection", "models/MailTemplate", "models/MailTemplateCollection", "models/MailList", "models/MailListItemCollection"], 
+	function(IndexView, UploadCSVView, SearchView, MailTemplatesView, MailTemplateView, MailsView, MailListsView, MailListView, OtherView, NotFoundView, OopsView, Company, CompanyCollection, MailTemplate, MailTemplateCollection, MailList, MailListItemCollection) {
 	var Router = Backbone.Router.extend({
 		currentView: null,
 		initialize: function() {
@@ -58,9 +58,9 @@ define(["views/index", "views/uploadCSV", "views/search", "views/mailtemplates",
 			this.changeView(new MailListsView());
 		},
 		mailList: function(maillistid) {
-			var model = new MailList({_id: maillistid, dataset: $('#dataset-selector').val()});
-			model.updateUrl();
-			var view = new MailListView({model:model});
+			var model = new MailListItemCollection();
+			model.updateUrl($('#dataset-selector').val(), maillistid);
+			var view = new MailListView({collection:model});
 			this.changeView(view);
 			model.fetch({success: function (model) {
 				//view.render(model);
