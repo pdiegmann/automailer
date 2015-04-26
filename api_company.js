@@ -33,7 +33,7 @@ module.exports = function(db) {
 				});
 			}, function(err) {
 				if (err) {
-					console.error(err);
+					logger.error(err);
 					return res.send(500);
 				}
 				return res.send(200);
@@ -80,18 +80,18 @@ module.exports = function(db) {
 				query = { dataset: datasetid, "active": true };
 			}
 
-			console.log(JSON.stringify(query));
+			logger.log(JSON.stringify(query));
 
 			db.PersonModel.find(query, { raw: 0, title: 0, firstName: 0, lastName: 0, location: 0, departement: 0, position: 0, created: 0, updated: 0, mailAddresses: 0,  telephone: 0, company: 0, active: 0, dataset: 0, "__v": 0 }, function (err, personIds) {
 				if (err) {
-					console.error(err);
+					logger.error(err);
 					return res.send(500);
 				}
 
 				if (!personIds)
 					return res.send(500);
 
-				console.log("skip: " + skip + " take: " + take + " person count: " + personIds.length);
+				logger.log("skip: " + skip + " take: " + take + " person count: " + personIds.length);
 
 				//var companyNames = global.stringArrayToRegexArray(company.name);
 				var companyNames = global.stringToRegexQuery(company.name);
@@ -167,7 +167,7 @@ module.exports = function(db) {
 
 			db.CompanyModel.find({ dataset: datasetid, "active": true }, { __v: 0, raw: 0 }, function(err, companies) {
 				if (err) {
-					console.error(err);
+					logger.error(err);
 					return res.send(500);
 				}
 
@@ -192,11 +192,11 @@ module.exports = function(db) {
 
 				async.each(companies, function(company, callback) {
 					company.orderNr = getNumber();
-					console.log((companiesLength - indexPool.length) + " " + company.name + " " + company.orderNr);
+					logger.log((companiesLength - indexPool.length) + " " + company.name + " " + company.orderNr);
 					company.save(callback);
 				}, function(err) {
 					if (err) {
-						console.error(err);
+						logger.error(err);
 						return res.send(500);
 					}
 					else {

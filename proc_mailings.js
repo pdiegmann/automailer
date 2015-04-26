@@ -62,7 +62,7 @@ if (!sender.smtp.quota) sender.smtp.quota = {};
 sender.smtp.quota.numberOfMails = options.sender.smtp.quota.numberOfMails || sender.smtp.quota.numberOfMails;
 sender.smtp.quota.perTimeFrame = options.sender.smtp.quota.perTimeFrame || sender.smtp.quota.perTimeFrame;
 
-console.log(sender);
+logger.log(sender);
 
 var smtpServer;
 var mailsSent = 0;
@@ -81,7 +81,7 @@ function connectToSmtpServer() {
 		tls: sender.smtp.tls,
 		port: sender.smtp.port
 	});
-	console.log(smtpServer);
+	logger.log(smtpServer);
 }
 
 function processMailings() {
@@ -89,21 +89,21 @@ function processMailings() {
 	.populate("preparedMails", "-__v")
 	.exec(function(err, mailingList) {
 		if (err) {
-			console.error(err);
+			logger.error(err);
 			throw err;
 			return;
 		}
 
 		if (!mailingList) {
-			console.log("No Mailing List found");
-			console.log("96: finished: " + mailsFinished + " sleeping: " + currentlySleeping);
+			logger.log("No Mailing List found");
+			logger.log("96: finished: " + mailsFinished + " sleeping: " + currentlySleeping);
 			process.exit();
 			return;
 		}
 
-		console.log("Mailing List has " + mailingList.sendTo.length + " receivers (persons)");
+		logger.log("Mailing List has " + mailingList.sendTo.length + " receivers (persons)");
 		async.eachSeries(mailingList.preparedMails, function (mail, callback) {
-			console.log("Processing Mail to " + mail.to);
+			logger.log("Processing Mail to " + mail.to);
 			var message = {
 				text: mail.body.replace(/<br\s*[\/]?>/gi, "\n").replace(/<\/?[^>]+(>|$)/g, ""), 
 				from: mail.from,
@@ -127,14 +127,14 @@ function processMailings() {
 					try {
 						if (err) {
 							mailsFinished++;
-							console.error(err);
+							logger.error(err);
 							return callback();
 						}
 						else {
 							mail.sent = Date.now();
 							mail.save(function(err) {
 								if (err) {
-									console.error(err);
+									logger.error(err);
 								}
 
 								if (!mailingList.sentMails) mailingList.sentMails = [];
@@ -143,7 +143,7 @@ function processMailings() {
 
 								mailingList.save(function(err) {
 									if (err) {
-										console.error(err);
+										logger.error(err);
 									}
 
 									mail.populate("person", "-__v -raw", function(err, mail) {
@@ -155,13 +155,13 @@ function processMailings() {
 													mail.person.mailAddresses[i].state = 1;
 													mail.person.save(function(err) {
 														if (err) {
-															console.error(err);
+															logger.error(err);
 														}
 
 														mailsFinished++;
 
 														if (mailsFinished >= mailsSent && currentlySleeping === false && checkingForMails === false) {
-															console.log("97: finished: " + mailsFinished + " sleeping: " + currentlySleeping);
+															logger.log("97: finished: " + mailsFinished + " sleeping: " + currentlySleeping);
 															process.exit();
 														}
 													});
@@ -175,19 +175,19 @@ function processMailings() {
 											mailsFinished++;
 
 											if (mailsFinished >= mailsSent && currentlySleeping === false && checkingForMails === false) {
-												console.log("98: finished: " + mailsFinished + " sleeping: " + currentlySleeping);
+												logger.log("98: finished: " + mailsFinished + " sleeping: " + currentlySleeping);
 												process.exit();
 											}
 										}
 									});
 								});
 
-								console.log("Timeout? (" + mailsSent + " / " + sender.smtp.quota.numberOfMails + " | " + sender.smtp.quota.perTimeFrame + ")");
+								logger.log("Timeout? (" + mailsSent + " / " + sender.smtp.quota.numberOfMails + " | " + sender.smtp.quota.perTimeFrame + ")");
 								if (sender.smtp.quota && sender.smtp.quota.numberOfMails && sender.smtp.quota.perTimeFrame && !isNaN(sender.smtp.quota.perTimeFrame) && !isNaN(sender.smtp.quota.numberOfMails) && sender.smtp.quota.numberOfMails > 0 && mailsSent >= sender.smtp.quota.numberOfMails) {
 									var resumingAllowed = startingSendMails + sender.smtp.quota.perTimeFrame * 1000 + 2000;
 									var timeToSleep = Math.max(resumingAllowed - new Date().getTime(), 2000);
 									if (timeToSleep < 2000) timeToSleep = sender.smtp.quota.perTimeFrame * 1000;
-									console.log("time to sleep: " + timeToSleep)
+									logger.log("time to sleep: " + timeToSleep)
 
 									currentlySleeping = true;
 
@@ -206,7 +206,7 @@ function processMailings() {
 						}
 					}
 					catch (e) {
-						console.error(e);
+						logger.error(e);
 						callback();
 					}
 				});
@@ -216,20 +216,20 @@ function processMailings() {
 			}
 		}, function (err) {
 			if (err) {
-				console.error(err);
+				logger.error(err);
 			}
 
 			if (currentlySleeping === false) checkingForMails = false;
 
 			if (mailsFinished >= mailsSent && currentlySleeping === false) {
-				console.log("99: finished: " + mailsFinished + " sleeping: " + currentlySleeping);
+				logger.log("99: finished: " + mailsFinished + " sleeping: " + currentlySleeping);
 				process.exit();
 			}
 		});
 	});
 }
 
-console.log("connecting to server...");
+logger.log("connecting to server...");
 connectToSmtpServer();
-console.log("processing mailings...");
+logger.log("processing mailings...");
 processMailings();

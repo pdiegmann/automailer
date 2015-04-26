@@ -11,15 +11,17 @@ define(["text!templates/uploadCSV.html", "libs/dropzone-amd-module"], function(u
 		render: function() {
 			this.$el.html(_.template(uploadTemplate));
 
-			$('#pictureUploadDropzone').attr("action", "/dataset/" + $('#dataset-selector').val() + "/upload");
+			$('#pictureUploadDropzone').attr("action", "/dataset/" + $('#dataset-selector').val() + "/upload?encoding=" + $('#encoding').val());
 
 			var settings = { 
 				maxFilesize: 12, 
 				method: "put", 
 				clickable: true, 
+				uploadMultiple: false,
+				parallelUploads: 1,
 				createImageThumbnails: false, 
 				//acceptedFiles: "text/csv",
-				url: "/dataset/" + $("#dataset-selector").val() + "/upload"
+				url: "/dataset/" + $("#dataset-selector").val() + "/upload?encoding=" + $('#encoding').val()
 			};
 			var myDropzone = new Dropzone("#pictureUploadDropzone", settings);
 

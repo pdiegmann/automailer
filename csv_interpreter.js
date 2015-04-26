@@ -37,14 +37,12 @@ module.exports = function(db) {
 			}
 
 			db.FirstNameModel.find({ "dataset": datasetid, "name": regex }, function(err, firstNames) {
-				console.log(firstNames.length + " names found");
-				console.log(firstNames);
 				if (err) {
 					if (callback) {
 						callback(err);
 					}
 					else {
-						console.error(err);
+						logger.error(err);
 					}
 					return;
 				}
@@ -66,7 +64,6 @@ module.exports = function(db) {
 					else {
 						person.gender = firstNames[0].gender;
 					}
-					console.log(person.firstName + ": " + person.gender);
 
 					person.save(function(err) {
 						if (err) {
@@ -74,7 +71,7 @@ module.exports = function(db) {
 								callback(err);
 							}
 							else {
-								console.error(err);
+								logger.error(err);
 							}
 						}
 						else {
@@ -123,8 +120,14 @@ module.exports = function(db) {
 									
 									persons.push(person._id);
 
-									that.guessMailAddresses(person, company);
-									that.guessGender(person, datasetId)
+									async.series([
+										function(callback) {
+											that.guessMailAddresses(person, company, callback);
+										},
+										function(callback) {
+											that.guessGender(person, datasetId, callback)
+										}
+									]);
 
 									callback();
 								});
@@ -134,7 +137,7 @@ module.exports = function(db) {
 						callback();
 				    },
 				    function (err) {
-				    	if (err) console.error("Error: " + err);
+				    	if (err) logger.error("Error: " + err);
 				    	else {
 				    		company.executives = persons;
 							company.save(function (err) {
@@ -221,7 +224,7 @@ module.exports = function(db) {
 			if (!string || string.length <= 0) return null;
 			var segments = string.split(",");
 			var segmentsLength = segments.length;
-			if (!segments || segmentsLength <= 0) return null;
+			if (!segments || segmentsLength <= 1) return null;
 
 			var person = new db.PersonModel();
 
@@ -296,21 +299,21 @@ module.exports = function(db) {
 			return person;
 		},
 
-		guessMailAddresses: function(person, company) {
+		guessMailAddresses: function(person, company, callback) {
 			if (!person) return;
 
 			if (!company) {
 				var that = this;
 				db.CompanyModel.findOne({ "_id": person.company }, function(err, company) {
 					if (err) {
-						console.error(err);
+						logger.error(err);
 						return;
 					}
 
 					if (!company) 
 						return;
 
-					that.guessMailAddresses(company, person);
+					that.guessMailAddresses(company, person, callback);
 				});
 				return;
 			}
@@ -387,6 +390,10 @@ module.exports = function(db) {
 			person.save(function (err) {
 				if (err) {
 					logger.error(err);
+				}
+
+				if (callback) {
+					callback(err);
 				}
 			});
 		}

@@ -36,12 +36,12 @@ module.exports = function(db) {
 			.populate("sendTo", "-__v -raw")
 			.exec(function(err, mailingList) {
 				if (err) {
-					console.error(err);
+					logger.error(err);
 					return res.send(500);
 				}
 
 				if (!mailingList) {
-					console.log("no Mail List found");
+					logger.log("no Mail List found");
 					return res.send(404);
 				}
 
@@ -50,24 +50,24 @@ module.exports = function(db) {
 				}
 
 				async.each(mailingList.sendTo, function(receiver, callback) {
-					console.log("going for " + receiver.firstName + " " + receiver.lastName);
+					logger.log("going for " + receiver.firstName + " " + receiver.lastName);
 					var done = false;
 					var i = 0;
 					async.until(function() { return done; }, function(callback) {
 						if (i >= receiver.mailAddresses.length) {
 							done = true;
-							console.log("iterated all addresses");
+							logger.log("iterated all addresses");
 							return callback();
 						}
 
 						var mailAddress = receiver.mailAddresses[i];
-						console.log("searching for " + mailAddress.address);
+						logger.log("searching for " + mailAddress.address);
 						i++;
 
 						db.MailModel.find({ dataset: datasetid, person: receiver._id, inMailingList: maillistid, to: new RegExp(mailAddress.address, "i"), bounced: true }, function(err, mails) {
 							if (err || !mails || mails.length <= 0) { 
-								console.log("no bounced mail this time");
-								if (err) console.error(err);
+								logger.log("no bounced mail this time");
+								if (err) logger.error(err);
 								return callback();
 							}
 
@@ -80,14 +80,14 @@ module.exports = function(db) {
 								callback();
 							}, function(err) {
 								if (err) {
-									console.error(err);
+									logger.error(err);
 								}
 
 								if (!nextAddress || !nextAddress.address || nextAddress.address.length <= 0) {
 									return callback();
 								}
 
-								console.log("Preparing mail to " + nextAddress.address);
+								logger.log("Preparing mail to " + nextAddress.address);
 
 								var mail = new db.MailModel();
 								
@@ -126,7 +126,7 @@ module.exports = function(db) {
 					}, callback);
 				}, function(err) {
 					if (err) {
-						console.error(err);
+						logger.error(err);
 						return res.send(500);
 					}
 					else {
@@ -192,14 +192,14 @@ module.exports = function(db) {
 				query = { dataset: datasetid, "active": true };
 			}
 
-			console.log(JSON.stringify(orQueries));
-			console.log(JSON.stringify(query));
+			logger.log(JSON.stringify(orQueries));
+			logger.log(JSON.stringify(query));
 
 			var personIdsToContact = [];
 
 			db.PersonModel.find(query, { raw: 0, title: 0, firstName: 0, lastName: 0, location: 0, departement: 0, position: 0, created: 0, updated: 0, mailAddresses: 0,  telephone: 0, company: 0, active: 0, dataset: 0, "__v": 0 }, function (err, docs) {
 				if (err) {
-					console.error(err);
+					logger.error(err);
 					return res.send(500);
 				}
 
@@ -256,18 +256,18 @@ module.exports = function(db) {
 				else
 					queryCompany = { dataset: datasetid, executives: { $in: personIds }, "active": true}
 
-				console.log("skip: " + parameters.settings.skip + " take: " + parameters.settings.take);
+				logger.log("skip: " + parameters.settings.skip + " take: " + parameters.settings.take);
 				db.CompanyModel.find(queryCompany, { "raw": 0, "__v": 0 })
 				.skip(parameters.settings.skip)
 				.limit(parameters.settings.take)
 				.sort({ "orderNr": 1 })
 				.exec(function(err, docs) {
 					if (err) {
-						console.error(err);
+						logger.error(err);
 					}
 
 					if (!docs || docs.length <= 0) {
-						console.error("no companies found!");
+						logger.error("no companies found!");
 					}
 
 					for (var i in docs) {
@@ -320,7 +320,7 @@ module.exports = function(db) {
 
 						mailingList.save(function(err) {
 							if (err) {
-								console.error(err);
+								logger.error(err);
 								return res.send(500);
 							}
 
@@ -334,7 +334,7 @@ module.exports = function(db) {
 										return callback(err);
 									}
 
-									console.log("Processing " + receiver.firstName + " " + receiver.lastName);
+									logger.log("Processing " + receiver.firstName + " " + receiver.lastName);
 
 									receiver.populate("company", "-__v -raw", function(err, receiver) {
 										if (err) {
@@ -346,7 +346,7 @@ module.exports = function(db) {
 											if (parameters.settings.includeAddressStates[mailAddress.state] !== true) return callback();
 											if (parameters.settings.sequential === true && countProcessedMailAddresses > 0) return callback();
 
-											console.log("Preparing mail to " + mailAddress.address);
+											logger.log("Preparing mail to " + mailAddress.address);
 
 											var mail = new db.MailModel();
 											
@@ -381,7 +381,7 @@ module.exports = function(db) {
 								});
 							}, function (err) {
 								if (err) {
-									console.error(err);
+									logger.error(err);
 									return res.send(500);
 								}
 								else {
@@ -470,7 +470,7 @@ module.exports = function(db) {
 
 			db.PersonModel.find(query, { raw: 0, title: 0, firstName: 0, lastName: 0, location: 0, departement: 0, position: 0, created: 0, updated: 0, mailAddresses: 0,  telephone: 0, company: 0, active: 0, dataset: 0, "__v": 0 }, function (err, docs) {
 				if (err) {
-					console.error(err);
+					logger.error(err);
 					return res.send(500);
 				}
 
@@ -578,7 +578,7 @@ module.exports = function(db) {
 
 						mailingList.save(function(err) {
 							if (err) {
-								console.error(err);
+								logger.error(err);
 								return res.send(500);
 							}
 
@@ -675,10 +675,10 @@ module.exports = function(db) {
 			});
 
 			var checkForReturn = function(force) {
-				console.log("processed: " + processingFinishedCount + " / " + mailsReceivedCount + " parsed: " + parsingFinishedCount + " / " + mailsReceivedCount + " imap CMDs running: " + imapCMDsRunning + " all received: " + allMailsReceived + " force: " + force);
+				logger.log("processed: " + processingFinishedCount + " / " + mailsReceivedCount + " parsed: " + parsingFinishedCount + " / " + mailsReceivedCount + " imap CMDs running: " + imapCMDsRunning + " all received: " + allMailsReceived + " force: " + force);
 				if ((force && force === true) || (allMailsReceived === true && parsingFinishedCount >= mailsReceivedCount && processingFinishedCount >= mailsReceivedCount) && imapCMDsRunning <= 0) {
 					try { imap.end(); }
-					catch (e) { console.error(e); }
+					catch (e) { logger.error(e); }
 					var elapsed = process.hrtime(start)[1] / 1000000; // divide by a million to get nano to milli
 					return res.send(200);
 				}
@@ -687,17 +687,17 @@ module.exports = function(db) {
 			imap.once('ready', function() {
 				imap.openBox('INBOX', false, function(err, box) {
 					if (err) {
-						console.error(err);
+						logger.error(err);
 						try { imap.end(); }
-						catch (e) { console.error(e); }
+						catch (e) { logger.error(e); }
 						return res.send(500);
 					}
 
 					imap.search([ (settings.imap.unseenOnly === true ? 'UNSEEN' : 'ALL'), ['SINCE', 'January 01, 2015'] ], function(err, results) {
 						if (err) {
-							console.error(err);
+							logger.error(err);
 							try { imap.end(); }
-							catch (e) { console.error(e); }
+							catch (e) { logger.error(e); }
 							return res.send(500);
 						}
 
@@ -712,7 +712,7 @@ module.exports = function(db) {
 							var prefix = '(#' + seqno + ') ';
 
 							msg.on('body', function(stream, info) {
-								console.log(prefix + 'Body');
+								logger.log(prefix + 'Body');
 
 								mailparser.on("end", function(mail) {
 									mail.deliveryFailed = false;
@@ -796,24 +796,24 @@ module.exports = function(db) {
 
 									db.MailModel.findOne({ "dataset": datasetid, "_id": mailIdCandidate }, function (err, originalMail) {
 										if (err) {
-											console.error(err);
+											logger.error(err);
 										}
 
 										if (!originalMail) {
-											console.log("no originalMail!");
+											logger.log("no originalMail!");
 											return checkForReturn();
 										}
 
 										originalMail.bounced = mail.deliveryFailed;
 										originalMail.save(function(err) {
 											if (err) {
-												console.error(err);
+												logger.error(err);
 											}
 										});
 
 										db.MailModel.findOne({ "dataset": datasetid, "externalId": "" + (msg.attributes && msg.attributes.uid ? msg.attributes.uid : seqno) }, function (err, oldResponse) {
 											if (err) {
-												console.error(err);
+												logger.error(err);
 											}
 
 											var response = oldResponse ? oldResponse : new db.MailModel();
@@ -829,16 +829,16 @@ module.exports = function(db) {
 
 											response.save(function(err) {
 												if (err) {
-													console.error(err);
+													logger.error(err);
 												}
 
 												db.MailingListModel.findOne({ "dataset": datasetid, "_id": maillistIdCandidate }, function(err, mailingList) {
 													if (err) {
-														console.error(err);
+														logger.error(err);
 													}
 
 													if (!mailingList) {
-														console.log("no mailing list");
+														logger.log("no mailing list");
 														return;
 													}
 
@@ -855,7 +855,7 @@ module.exports = function(db) {
 														mailingList.answers.push(response._id);
 														mailingList.save(function(err) {
 															if (err) {
-																console.error(err);
+																logger.error(err);
 															}
 														});
 													}
@@ -867,7 +867,7 @@ module.exports = function(db) {
 
 													response.save(function(err) {
 														if (err) {
-															console.error(err);
+															logger.error(err);
 														}
 
 														return checkForReturn();
@@ -875,7 +875,7 @@ module.exports = function(db) {
 
 													db.PersonModel.findOne({ "dataset": datasetid, "active": true, "_id": originalMail.person }, function(err, person) {
 														if (err) {
-															console.error(err);
+															logger.error(err);
 														}
 
 														if (!person || !person.mailAddresses) {
@@ -891,7 +891,7 @@ module.exports = function(db) {
 
 														person.save(function(err) {
 															if (err) {
-																console.error(err);
+																logger.error(err);
 															}
 														});
 													});
@@ -899,7 +899,7 @@ module.exports = function(db) {
 												else {
 													db.PersonModel.find({ "dataset": datasetid, "active": true, "mailAddresses.address": mail.from[0].address }, function(err, persons) {
 														if (err) {
-															console.error(err);
+															logger.error(err);
 														}
 
 														if (!persons) {
@@ -919,7 +919,7 @@ module.exports = function(db) {
 																	response.person = person._id;
 																	response.save(function(err) {
 																		if (err) {
-																			console.error(err);
+																			logger.error(err);
 																		}
 																	});
 
@@ -929,7 +929,7 @@ module.exports = function(db) {
 
 															person.save(function(err) {
 																if (err) {
-																	console.error(err);
+																	logger.error(err);
 																}
 															});
 														}
@@ -950,19 +950,19 @@ module.exports = function(db) {
 							});
 							
 							msg.once('end', function() {
-								console.log(prefix + 'Finished');
+								logger.log(prefix + 'Finished');
 								parsingFinishedCount++;
 								return checkForReturn();
 							});
 						});
 						
 						f.once('error', function(err) {
-							console.log('Fetch error: ' + err);
+							logger.log('Fetch error: ' + err);
 							return res.send(500);
 						});
 
 						f.once('end', function() {
-							console.log('Done fetching all messages!');
+							logger.log('Done fetching all messages!');
 							allMailsReceived = true;
 							return checkForReturn();
 						});
@@ -971,12 +971,12 @@ module.exports = function(db) {
 			});
 
 			imap.once('error', function(err) {
-				console.log(err);
+				logger.log(err);
 				return res.send(500);
 			});
 
 			imap.once('end', function() {
-				console.log('Connection ended');
+				logger.log('Connection ended');
 				return checkForReturn(true);
 			});
 

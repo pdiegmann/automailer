@@ -4,8 +4,11 @@ var mongoose = require("mongoose");
 var url = require('url');
 var async = require('async');
 var logger = require('tracer').colorConsole();
+var iconv = require('iconv-lite');
 
 var _ = require("underscore");
+
+iconv.extendNodeEncodings();
 
 /******
 	PROTOTYPES
@@ -71,7 +74,7 @@ global.stringToRegexQuery = function(str) {
 		}
 	}
 	catch (e) {
-		console.error(e);
+		logger.error(e);
 		return undefined;
 	}
 };

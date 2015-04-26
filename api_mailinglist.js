@@ -13,7 +13,7 @@ module.exports = function(db) {
 			.populate("preparedMails", "-__v")
 			.exec(function(err, doc) {
 				if (err) {
-					console.error(err);
+					logger.error(err);
 					return res.send(500);
 				}
 
@@ -38,7 +38,7 @@ module.exports = function(db) {
 					});
 				}, function(err) {
 					if (err) {
-						console.error(err);
+						logger.error(err);
 						return res.send(500);
 					}
 
@@ -66,7 +66,7 @@ module.exports = function(db) {
 				{ $project: { count: { $size: "$preparedMails" } } }
 			], function (err, aggregation) {
 				if (err) {
-					console.error(err);
+					logger.error(err);
 				}
 				var count = 0;
 				if (aggregation && aggregation.length > 0 && aggregation[0].count && !isNaN(aggregation[0].count)) count = aggregation[0].count;
@@ -76,7 +76,7 @@ module.exports = function(db) {
 				.populate("preparedMails", "-__v")
 				.exec(function(err, doc) {
 					if (err) {
-						console.error(err);
+						logger.error(err);
 						return res.send(500);
 					}
 
@@ -107,7 +107,7 @@ module.exports = function(db) {
 						});
 					}, function(err) {
 						if (err) {
-							console.error(err);
+							logger.error(err);
 							return res.send(500);
 						}
 
@@ -133,7 +133,7 @@ module.exports = function(db) {
 			db.MailingListModel.findOne({ dataset: datasetid, _id: maillistid }, { __v: 0 })
 			.exec(function(err, maillist) {
 				if (err) {
-					console.error(err);
+					logger.error(err);
 					return res.send(500);
 				}
 
@@ -144,7 +144,7 @@ module.exports = function(db) {
 				db.MailModel.findOne({ dataset: datasetid, _id: mailid }, { __v: 0 })
 				.exec(function(err, mail) {
 					if (err) {
-						console.error(err);
+						logger.error(err);
 						return res.send(500);
 					}
 
@@ -154,7 +154,7 @@ module.exports = function(db) {
 
 					mail.remove(function(err) {
 						if (err) {
-							console.error(err);
+							logger.error(err);
 							return res.send(500);
 						}
 
@@ -162,7 +162,7 @@ module.exports = function(db) {
 
 						maillist.save(function(err) {
 							if (err) {
-								console.error(err);
+								logger.error(err);
 								return res.send(500);
 							}
 
@@ -184,7 +184,7 @@ module.exports = function(db) {
 			.populate("person", "-__v -raw")
 			.exec(function(err, mail) {
 				if (err) {
-					console.error(err);
+					logger.error(err);
 					return res.send(500);
 				}
 
@@ -203,13 +203,13 @@ module.exports = function(db) {
 
 				mail.person.save(function(err) {
 					if (err) {
-						console.error(err);
+						logger.error(err);
 						return res.send(500);
 					}
 
 					mail.save(function(err) {
 						if (err) {
-							console.error(err);
+							logger.error(err);
 							return res.send(500);
 						}
 
@@ -231,7 +231,7 @@ module.exports = function(db) {
 			skip = parseInt(skip);
 
 			db.MailingListModel.count({ dataset: datasetid }, function(err, count) {
-				console.log("count:" + count);
+				logger.log("count:" + count);
 				db.MailingListModel.find({ dataset: datasetid }, { __v: 0 }).sort({ created: -1 })
 				//.populate("sendTo", "-__v")
 				//.populate("sentMails", "-__v")
@@ -261,7 +261,7 @@ module.exports = function(db) {
 
 							db.CompanyModel.findOne({ "_id": person.company, "dataset": datasetid, "active": true }, { "__v": 0, "raw": 0 }, function(err, company) {
 								if (err) {
-									console.error(err);
+									logger.error(err);
 									callbackDeep();
 									return;
 								}
@@ -271,7 +271,7 @@ module.exports = function(db) {
 							});
 						}, function(err) {
 							if (err) {
-								console.error(err);
+								logger.error(err);
 								callback(err);
 								return res.send(500);
 							}
@@ -281,7 +281,7 @@ module.exports = function(db) {
 						});
 					}, function(err) {
 						if (err) {
-							console.error(err);
+							logger.error(err);
 							callback(err);
 							return res.send(500);
 						}

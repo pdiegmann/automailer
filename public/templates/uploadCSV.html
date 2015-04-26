@@ -6,6 +6,33 @@
 <hr/>
 <div class="row">
   <div class="col-md-12">
+    <select id="encoding" name="encoding" style="width:50% !important;">
+      <option value="utf8">UTF-8</option>
+      <option value="ISO-8859-1" selected>Latin-1 (West) (ISO 8859-1)</option>
+      <option value="ISO-8859-2">Latin-2 (Mittel) (ISO 8859-2)</option>
+      <option value="ISO-8859-3">Latin-3 (Süd) (ISO 8859-3)</option>
+      <option value="ISO-8859-4">Latin-4 (Nord) (ISO 8859-4)</option>
+      <option value="ISO-8859-5">Kyrillisch (ISO 8859-5)</option>
+      <option value="ISO-8859-6">Arabisch (ISO 8859-6)</option>
+      <option value="ISO-8859-7">Griechisch (ISO 8859-7)</option>
+      <option value="ISO-8859-9">Türkisch (ISO 8859-9)</option>
+      <option value="ISO-8859-10">Nordisch (ISO 8859-10)</option>
+      <option value="1250">Windows 1250 (ISO 8859-2)</option>
+      <option value="1250">Windows 1252 (ISO 8859-1)</option>
+      <option value="1251">Windows 1251 (ISO 8859-5)</option>
+      <option value="utf16le">UTF-16le</option>
+      <option value="UTF-16BE">UTF-16BE</option>
+      <option value="UTF-16">UTF-16 (BOM)</option>
+      <option value="ascii">ASCII</option>
+      <option value="base64">Base64</option>
+      <option value="binary">Binary</option>
+      <option value="hex">Hex</option>
+    </select>
+  </div>
+</div>
+<hr/>
+<div class="row">
+  <div class="col-md-12">
     <form id="pictureUploadDropzone" class="dropzone" action="/dataset//upload">
       <div class="fallback">
         <input name="file" type="file" multiple />

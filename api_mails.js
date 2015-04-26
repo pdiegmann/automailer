@@ -33,7 +33,7 @@ module.exports = function(db) {
 
 						db.CompanyModel.findOne({ "_id": doc.person.company, "dataset":datasetid , "active": true }, { "__v": 0, "raw": 0 }, function(err, company) {
 							if (err) {
-								console.error(err);
+								logger.error(err);
 								callback();
 								return;
 							}
@@ -43,7 +43,7 @@ module.exports = function(db) {
 						});
 					}, function(err) {
 						if (err) {
-							console.error(err);
+							logger.error(err);
 							return res.send(500);
 						}
 						else {
@@ -68,7 +68,7 @@ module.exports = function(db) {
 				}
 
 				if (!doc) {
-					console.log("not found!");
+					logger.log("not found!");
 					return res.send(404);
 				}
 

@@ -16,6 +16,7 @@
 		"underscore": ">= 0.0.1",
 		"emailjs": ">= 0.0.1",
 		"imap": ">= 0.8.0",
-		"mailparser": ">= 0.0.1"
+		"mailparser": ">= 0.0.1",
+		"iconv-lite": ">= 0.0.1"
 	}
 }

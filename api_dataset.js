@@ -36,6 +36,7 @@ module.exports = function(db) {
 			var delimiter = req.param("delimiter", ",");
 			var skipEmpty = req.param("skipEmpty", false);
 			var checkType = req.param("checkType", false);
+			var encoding = req.param("encoding", "utf8");
 			var quote = req.param("quote", "\"");
 
 			if (datasetId == null || datasetId.length <= 0)
@@ -94,7 +95,7 @@ module.exports = function(db) {
 						}
 					});
 
-					var fileStream = fs.createReadStream(file.path); //, { encoding: 'utf8' }
+					var fileStream = fs.createReadStream(file.path, { encoding: encoding });
 
 					fileStream.pipe(csvConverter);
 				}
@@ -179,7 +180,7 @@ module.exports = function(db) {
 				})
 			}, function(err) {
 				if (err) {
-					console.error(err);
+					logger.error(err);
 					return res.send(500);
 				}
 				return res.send(200);
@@ -191,7 +192,7 @@ module.exports = function(db) {
 
 			db.PersonModel.find({ "dataset": datasetid, "active": true }, function(err, persons) {
 				if (err) {
-					console.error(err);
+					logger.error(err);
 					return res.send(500);
 				}
 
@@ -203,7 +204,7 @@ module.exports = function(db) {
 					csv_interpreter.guessGender(person, datasetid, callback);
 				}, function(err) {
 					if (err) {
-						console.error(err);
+						logger.error(err);
 						return res.send(500);
 					}
 
