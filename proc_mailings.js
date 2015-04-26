@@ -78,6 +78,7 @@ function connectToSmtpServer() {
 		password: sender.smtp.password,
 		host: sender.smtp.server,
 		ssl: sender.smtp.ssl,
+		tls: sender.smtp.tls,
 		port: sender.smtp.port
 	});
 	console.log(smtpServer);
@@ -183,8 +184,9 @@ function processMailings() {
 
 								console.log("Timeout? (" + mailsSent + " / " + sender.smtp.quota.numberOfMails + " | " + sender.smtp.quota.perTimeFrame + ")");
 								if (sender.smtp.quota && sender.smtp.quota.numberOfMails && sender.smtp.quota.perTimeFrame && !isNaN(sender.smtp.quota.perTimeFrame) && !isNaN(sender.smtp.quota.numberOfMails) && sender.smtp.quota.numberOfMails > 0 && mailsSent >= sender.smtp.quota.numberOfMails) {
-									var resumingAllowed = startingSendMails + sender.smtp.quota.perTimeFrame + 2000;
+									var resumingAllowed = startingSendMails + sender.smtp.quota.perTimeFrame * 1000 + 2000;
 									var timeToSleep = Math.max(resumingAllowed - new Date().getTime(), 2000);
+									if (timeToSleep < 2000) timeToSleep = sender.smtp.quota.perTimeFrame * 1000;
 									console.log("time to sleep: " + timeToSleep)
 
 									currentlySleeping = true;

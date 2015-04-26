@@ -586,13 +586,13 @@ module.exports = function(db) {
 
 							var child = exec('node proc_mailings.js', { env: { options: JSON.stringify(mailSettings) } });
 							child.stdout.on('data', function(data) {
-							    console.log('stdout: ' + data);
+							    logger.log(data);
 							});
 							child.stderr.on('data', function(data) {
-							    console.log('stderr: ' + data);
+							    logger.log(data);
 							});
 							child.on('close', function(code) {
-							    console.log('closing code: ' + code);
+							    logger.log('closing code: ' + code);
 							});
 
 							return res.send(200);
@@ -634,13 +634,13 @@ module.exports = function(db) {
 
 			var child = exec('node proc_mailings.js', { env: { options: JSON.stringify(mailSettings) } });
 			child.stdout.on('data', function(data) {
-			    console.log('stdout: ' + data);
+			    logger.log(data);
 			});
 			child.stderr.on('data', function(data) {
-			    console.log('stderr: ' + data);
+			    logger.log(data);
 			});
 			child.on('close', function(code) {
-			    console.log('closing code: ' + code);
+			    logger.log('closing code: ' + code);
 			});
 
 			return res.send(200);
