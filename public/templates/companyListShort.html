@@ -33,14 +33,31 @@
 						<% 
 						var matchesQuery = !departementRegex && !positionRegex && !locationRegex ? true : false;
 
-						if (!matchesQuery && (departementRegex && model[i].executives[j].departement && departementRegex.test(model[i].executives[j].departement))) {
-							matchesQuery = true;
+						if (!matchesQuery && departementRegex && model[i].executives[j].departement) { 
+							if ((!departementNegated && departementRegex.test(model[i].executives[j].departement)) || (departementNegated && !departementRegex.test(model[i].executives[j].departement))) {
+								matchesQuery = true;
+							}
+							else {
+								matchesQuery = false;
+							}
 						}
-						if (!matchesQuery && (positionRegex && model[i].executives[j].position && positionRegex.test(model[i].executives[j].position))) {
-							matchesQuery = true;
+
+						if (matchesQuery && positionRegex && model[i].executives[j].position) { 
+							if ((!positionNegated && positionRegex.test(model[i].executives[j].position)) || (positionNegated && !positionRegex.test(model[i].executives[j].position))) {
+								matchesQuery = true;
+							}
+							else {
+								matchesQuery = false;
+							}
 						}
-						if (!matchesQuery && (locationRegex && model[i].executives[j].location && locationRegex.test(model[i].executives[j].location))) {
-							matchesQuery = true;
+
+						if (matchesQuery && locationRegex && model[i].executives[j].location) {
+							if ((!locationNegated && locationRegex.test(model[i].executives[j].location)) || (locationNegated && !locationRegex.test(model[i].executives[j].location))) {
+								matchesQuery = true;
+							}
+							else {
+								matchesQuery = false;
+							}
 						}
 
 						if (matchesQuery) { 

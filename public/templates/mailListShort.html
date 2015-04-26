@@ -64,15 +64,16 @@
       } %>"></i>
     </td>
     <td colspan="8">
-      <span data-field="subject" data-mailid="<%= model[j]._id %>"><%= model[j].subject %></span>
-      <input style="display: none; width: 100%" type="text" name="subject" data-field="subject" data-mailid="<%= model[j]._id %>" value="<%= model[j].subject %>"/>
-    </td>
-  </tr>
-  <tr data-mailid="<%= model[j]._id %>">
-    <td></td>
-    <td colspan="8">
-      <span data-field="body" data-mailid="<%= model[j]._id %>"><%= model[j].body %></span>
-      <textarea class="summernote hidden" type="text" name="body" data-field="body" data-mailid="<%= model[j]._id %>"><%= model[j].body %></textarea>
+      <div class="accordion-heading">
+        <a class="accordion-toggle btn btn-default btn-sm" data-toggle="collapse" href="#collapse-<%= model[j]._id %>">Mail anzeigen / verstecken</a>
+      </div>
+      <div id="collapse-<%= model[j]._id %>" class="accordion-body collapse">
+        <span data-field="subject" data-mailid="<%= model[j]._id %>"><%= model[j].subject %></span>
+        <input style="display: none; width: 100%" type="text" name="subject" data-field="subject" data-mailid="<%= model[j]._id %>" value="<%= model[j].subject %>"/>
+        <hr/>
+        <span data-field="body" data-mailid="<%= model[j]._id %>"><%= model[j].body %></span>
+        <textarea class="summernote hidden" type="text" name="body" data-field="body" data-mailid="<%= model[j]._id %>"><%= model[j].body %></textarea>
+      </div>
     </td>
   </tr>
 <% } %>

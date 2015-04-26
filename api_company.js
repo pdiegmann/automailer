@@ -54,30 +54,33 @@ module.exports = function(db) {
 			var executive = req.param("executive", { departement: "", position: "" });
 			var company = req.param("company", { name: "", employees: { gt: -1, lt: -1 }, branch: { USSIC: -1, NACE: -1 } });
 
-			var departements = global.stringArrayToRegexArray(executive.departement);
-			var positions = global.stringArrayToRegexArray(executive.position);
-			var locations = global.stringArrayToRegexArray(executive.location);
+			//var departements = global.stringArrayToRegexArray(executive.departement);
+			//var positions = global.stringArrayToRegexArray(executive.position);
+			//var locations = global.stringArrayToRegexArray(executive.location);
+			var departements = global.stringToRegexQuery(executive.departement);
+			var positions = global.stringToRegexQuery(executive.position);
+			var locations = global.stringToRegexQuery(executive.location);
 
 			var orQueries = [];
-			if (departements && departements.length > 0) {
-				orQueries.push({ "departement": { $in : departements } });
+			if (departements) { // && departements.length > 0) {
+				orQueries.push({ "departement": departements }); // { $in : departements } });
 			}
-			if (positions && positions.length > 0) {
-				orQueries.push({ "positions": { $in : positions } });
+			if (positions) { // && positions.length > 0) {
+				orQueries.push({ "position": positions }); // { $in : positions } });
 			}
-			if (positions && positions.length > 0) {
-				orQueries.push({ "location": { $in : positions } });
+			if (locations) { // && locations.length > 0) {
+				orQueries.push({ "location": locations }); // { $in : locations } });
 			}
 
 			var query;
 			if (orQueries.length > 0) {
-				query = { dataset: datasetid, "active": true, $or: orQueries };
+				query = { dataset: datasetid, "active": true, $and: orQueries };
 			}
 			else {
 				query = { dataset: datasetid, "active": true };
 			}
 
-			console.log(query);
+			console.log(JSON.stringify(query));
 
 			db.PersonModel.find(query, { raw: 0, title: 0, firstName: 0, lastName: 0, location: 0, departement: 0, position: 0, created: 0, updated: 0, mailAddresses: 0,  telephone: 0, company: 0, active: 0, dataset: 0, "__v": 0 }, function (err, personIds) {
 				if (err) {
@@ -90,7 +93,9 @@ module.exports = function(db) {
 
 				console.log("skip: " + skip + " take: " + take + " person count: " + personIds.length);
 
-				var companyNames = global.stringArrayToRegexArray(company.name);
+				//var companyNames = global.stringArrayToRegexArray(company.name);
+				var companyNames = global.stringToRegexQuery(company.name);
+
 				var employeesGT;
 				var employeesLT;
 				if (company.employees) {
@@ -107,8 +112,8 @@ module.exports = function(db) {
 				}
 
 				var orQueriesCompany = [];
-				if (companyNames && companyNames.length > 0) {
-					orQueriesCompany.push({ "name": { $in : companyNames } });
+				if (companyNames) { // && companyNames.length > 0) {
+					orQueriesCompany.push({ "name": companyNames }); // { $in : companyNames } });
 				} 
 				if (employeesGT && !isNaN(employeesGT) && employeesLT && !isNaN(employeesLT)) {
 					orQueriesCompany.push({ "employees": { $gte: employeesGT, $lte: employeesLT } });

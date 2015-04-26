@@ -16,7 +16,7 @@ module.exports = function(db) {
 				return;
 			}
 
-			var firstNameSegments = person.firstName.split(" ");
+			var firstNameSegments = person.firstName.replace("-", " ").split(" ");
 			if (!firstNameSegments) {
 				if (callback) {
 					callback();

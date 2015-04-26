@@ -69,6 +69,9 @@ var mailsSent = 0;
 var mailsFinished = 0;
 var startingSendMails = 0;
 
+var currentlySleeping = false;
+var checkingForMails = false;
+
 function connectToSmtpServer() {
 	smtpServer = email.server.connect({
 		user: sender.smtp.username,
@@ -92,6 +95,7 @@ function processMailings() {
 
 		if (!mailingList) {
 			console.log("No Mailing List found");
+			console.log("96: finished: " + mailsFinished + " sleeping: " + currentlySleeping);
 			process.exit();
 			return;
 		}
@@ -103,7 +107,7 @@ function processMailings() {
 				text: mail.body.replace(/<br\s*[\/]?>/gi, "\n").replace(/<\/?[^>]+(>|$)/g, ""), 
 				from: mail.from,
 				"reply-to": mail.from,
-				to: mail.to,
+				to: "mail@phildiegmann.com", //mail.to,
 				subject: mail.subject,
 				"message-id": "<" + mail._id + "." + mailingListId + "." + datasetId + "@" + os.hostname() +">", 
 				attachment: [
@@ -155,7 +159,8 @@ function processMailings() {
 
 														mailsFinished++;
 
-														if (mailsFinished >= mailsSent) {
+														if (mailsFinished >= mailsSent && currentlySleeping === false && checkingForMails === false) {
+															console.log("97: finished: " + mailsFinished + " sleeping: " + currentlySleeping);
 															process.exit();
 														}
 													});
@@ -168,7 +173,8 @@ function processMailings() {
 										if (!addressFound) {
 											mailsFinished++;
 
-											if (mailsFinished >= mailsSent) {
+											if (mailsFinished >= mailsSent && currentlySleeping === false && checkingForMails === false) {
+												console.log("98: finished: " + mailsFinished + " sleeping: " + currentlySleeping);
 												process.exit();
 											}
 										}
@@ -181,10 +187,14 @@ function processMailings() {
 									var timeToSleep = Math.max(resumingAllowed - new Date().getTime(), 2000);
 									console.log("time to sleep: " + timeToSleep)
 
-									setTimeout(function() {
+									currentlySleeping = true;
+
+									return setTimeout(function() {
+										checkingForMails = true;
 										mailsSent = 0;
 										startingSendMails = 0;
 										callback();
+										currentlySleeping = false;
 									}, timeToSleep);
 								}
 								else {
@@ -207,7 +217,10 @@ function processMailings() {
 				console.error(err);
 			}
 
-			if (mailsFinished >= mailsSent) {
+			if (currentlySleeping === false) checkingForMails = false;
+
+			if (mailsFinished >= mailsSent && currentlySleeping === false) {
+				console.log("99: finished: " + mailsFinished + " sleeping: " + currentlySleeping);
 				process.exit();
 			}
 		});

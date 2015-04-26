@@ -23,6 +23,16 @@ if (typeof String.prototype.endsWith != 'function') {
 	};
 }
 
+global.shuffleArray = function(array) {
+    for (var i = array.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var temp = array[i];
+        array[i] = array[j];
+        array[j] = temp;
+    }
+    return array;
+};
+
 global.stringArrayToRegexArray = function(strArray) {
 	if (!strArray) return [];
 	var segments = strArray.split(",");
@@ -47,6 +57,23 @@ global.stringArrayToNumberArray = function(strArray) {
 		numbers.push(parseInt(segments[i].trim()));
 	}
 	return numbers;
+};
+
+global.stringToRegexQuery = function(str) {
+	try {
+		if (!str || str.length <= 0) return undefined;
+
+		if (str.startsWith("not:")) {
+			return { $not: new RegExp(str.substr(4)) }
+		}
+		else {
+			return new RegExp(str);
+		}
+	}
+	catch (e) {
+		console.error(e);
+		return undefined;
+	}
 };
 
 /******

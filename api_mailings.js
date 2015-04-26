@@ -26,6 +26,7 @@ module.exports = function(db) {
 
 			parameters = req.body.mail || parameters;
 			parameters.settings.sequential = parameters.settings.sequential === "true" || parameters.settings.sequential === "on" ? true : false;
+			parameters.settings.randomPersonSelection = parameters.settings.randomPersonSelection === "true" || parameters.settings.randomPersonSelection === "on" ? true : false;
 			for (var i = 0; i < parameters.settings.includeAddressStates.length; i++) {
 				parameters.settings.includeAddressStates[i] = parameters.settings.includeAddressStates[i] === "true" || parameters.settings.includeAddressStates[i] === "on" ? true : false;
 			}
@@ -42,6 +43,10 @@ module.exports = function(db) {
 				if (!mailingList) {
 					console.log("no Mail List found");
 					return res.send(404);
+				}
+
+				if (parameters.settings.randomPersonSelection === true) {
+					global.shuffleArray(mailingList.sendTo);
 				}
 
 				async.each(mailingList.sendTo, function(receiver, callback) {
@@ -157,34 +162,38 @@ module.exports = function(db) {
 
 			parameters = req.body.mail || parameters;
 			parameters.settings.sequential = parameters.settings.sequential === "true" || parameters.settings.sequential === "on" ? true : false;
+			parameters.settings.randomPersonSelection = parameters.settings.randomPersonSelection === "true" || parameters.settings.randomPersonSelection === "on" ? true : false;
 			for (var i = 0; i < parameters.settings.includeAddressStates.length; i++) {
 				parameters.settings.includeAddressStates[i] = parameters.settings.includeAddressStates[i] === "true" || parameters.settings.includeAddressStates[i] === "on" ? true : false;
 			}
 			parameters.settings.skip = parseInt(parameters.settings.skip);
 			parameters.settings.take = parseInt(parameters.settings.take);
 
-			var departements = stringArrayToRegexArray(executive.departement);
-			var positions = stringArrayToRegexArray(executive.position);
-			var locations = stringArrayToRegexArray(executive.location);
+			var departements = global.stringToRegexQuery(executive.departement);
+			var positions = global.stringToRegexQuery(executive.position);
+			var locations = global.stringToRegexQuery(executive.location);
 
 			var orQueries = [];
-			if (departements && departements.length > 0) {
-				orQueries.push({ "departement": { $in : departements } });
+			if (departements) {
+				orQueries.push({ "departement": departements });
 			}
-			if (positions && positions.length > 0) {
-				orQueries.push({ "positions": { $in : positions } });
+			if (positions) {
+				orQueries.push({ "positions": positions });
 			}
-			if (positions && positions.length > 0) {
-				orQueries.push({ "location": { $in : positions } });
+			if (locations) {
+				orQueries.push({ "location": locations });
 			}
 
 			var query;
 			if (orQueries.length > 0) {
-				query = { dataset: datasetid, "active": true, $or: orQueries };
+				query = { dataset: datasetid, "active": true, $and: orQueries };
 			}
 			else {
 				query = { dataset: datasetid, "active": true };
 			}
+
+			console.log(JSON.stringify(orQueries));
+			console.log(JSON.stringify(query));
 
 			var personIdsToContact = [];
 
@@ -203,7 +212,7 @@ module.exports = function(db) {
 					personIds.push(docs[i]._id);
 				}
 
-				var companyNames = stringArrayToRegexArray(company.name);
+				var companyNames = global.stringToRegexQuery(company.name);
 				var employeesGT;
 				var employeesLT;
 				if (company.employees) {
@@ -215,8 +224,8 @@ module.exports = function(db) {
 				var branchesNACE;
 				var branchesUSSIC;
 				if (company.branch) {
-					branchesNACE = stringArrayToNumberArray(company.branch.NACE);
-					branchesUSSIC = stringArrayToNumberArray(company.branch.USSIC);
+					branchesNACE = global.stringArrayToNumberArray(company.branch.NACE);
+					branchesUSSIC = global.stringArrayToNumberArray(company.branch.USSIC);
 				}
 
 				var orQueriesCompany = [];
@@ -261,20 +270,24 @@ module.exports = function(db) {
 						console.error("no companies found!");
 					}
 
-					console.log(docs);
 					for (var i in docs) {
 						var company = docs[i];
 						if (!company || !company.executives || company.executives.length <= 0) continue;
 						
 						for (var k = 0; k < company.executives.length; k++) {
 							var positionsToDelete = [];
-
+							var personFound = false;
 							for (var j = 0; j < personIds.length; j++) {
 								if ((personIds[j] + "") === company.executives[k] + "") {
 									positionsToDelete.push(j);
 									personIdsToContact.push(personIds[j]);
+									personFound = true;
 									break;
 								}	
+							}
+
+							if (parameters.settings.randomPersonSelection === true && personFound) {
+								break;
 							}
 
 							for (var j in positionsToDelete) {
@@ -309,6 +322,10 @@ module.exports = function(db) {
 							if (err) {
 								console.error(err);
 								return res.send(500);
+							}
+
+							if (parameters.settings.randomPersonSelection === true) {
+								global.shuffleArray(mailingList.sendTo);
 							}
 
 							async.eachSeries(mailingList.sendTo, function (receiver, callback) {
@@ -353,6 +370,7 @@ module.exports = function(db) {
 													return callback(err);
 												}
 												else {
+													countProcessedMailAddresses++;
 													if (!mailingList.preparedMails) mailingList.preparedMails = [];
 													mailingList.preparedMails.push(mail);
 													mailingList.save(callback);
@@ -414,6 +432,7 @@ module.exports = function(db) {
 
 			mailSettings.sender = req.body.mail || mailSettings.sender;
 			mailSettings.sender.settings.sequential = mailSettings.sender.settings.sequential === "true" || mailSettings.sender.settings.sequential === "on" ? true : false;
+			parameters.settings.randomPersonSelection = parameters.settings.randomPersonSelection === "true" || parameters.settings.randomPersonSelection === "on" ? true : false;
 			for (var i = 0; i < mailSettings.sender.settings.includeAddressStates.length; i++) {
 				mailSettings.sender.settings.includeAddressStates[i] = mailSettings.sender.settings.includeAddressStates[i] === "true" || mailSettings.sender.settings.includeAddressStates[i] === "on" ? true : false;
 			}
@@ -424,9 +443,9 @@ module.exports = function(db) {
 			mailSettings.sender.smtp.quota.numberOfMails = parseInt(mailSettings.sender.smtp.quota.numberOfMails);
 			mailSettings.sender.smtp.quota.perTimeFrame = parseInt(mailSettings.sender.smtp.quota.perTimeFrame);
 
-			var departements = stringArrayToRegexArray(executive.departement);
-			var positions = stringArrayToRegexArray(executive.position);
-			var locations = stringArrayToRegexArray(executive.location);
+			var departements = global.stringToRegexQuery(executive.departement);
+			var positions = global.stringToRegexQuery(executive.position);
+			var locations = global.stringToRegexQuery(executive.location);
 
 			var orQueries = [];
 			if (departements && departements.length > 0) {
@@ -464,7 +483,7 @@ module.exports = function(db) {
 					personIds.push(docs[i]._id);
 				}
 
-				var companyNames = stringArrayToRegexArray(company.name);
+				var companyNames = global.stringToRegexQuery(company.name);
 				var employeesGT;
 				var employeesLT;
 				if (company.employees) {
@@ -476,8 +495,8 @@ module.exports = function(db) {
 				var branchesNACE;
 				var branchesUSSIC;
 				if (company.branch) {
-					branchesNACE = stringArrayToNumberArray(company.branch.NACE);
-					branchesUSSIC = stringArrayToNumberArray(company.branch.USSIC);
+					branchesNACE = global.stringArrayToNumberArray(company.branch.NACE);
+					branchesUSSIC = global.stringArrayToNumberArray(company.branch.USSIC);
 				}
 
 				var orQueriesCompany = [];
@@ -541,6 +560,11 @@ module.exports = function(db) {
 						}
 
 						var mailingList = new db.MailingListModel();
+
+						if (parameters.settings.randomPersonSelection === true) {
+							global.shuffleArray(personIdsToContact);
+						}
+
 						mailingList.sendTo = personIdsToContact;
 						mailingList.dataset = datasetid;
 						mailingList.from = {
@@ -957,32 +981,6 @@ module.exports = function(db) {
 			});
 
 			imap.connect();
-		},
-
-		stringArrayToRegexArray: function(strArray) {
-			if (!strArray) return [];
-			var segments = strArray.split(",");
-			var regexes = [];
-			var segmentsLength = segments.length;
-			if (segmentsLength <= 0) return [];
-			for (var i in segments) {
-				if (!segments[i] || segments[i].trim().length <= 0) continue;
-				regexes.push(new RegExp(".*" + segments[i].trim() + ".*"));
-			}
-			return regexes;
-		},
-
-		stringArrayToNumberArray: function(strArray) {
-			if (!strArray) return [];
-			var segments = strArray.split(",");
-			var numbers = [];
-			var segmentsLength = segments.length;
-			if (segmentsLength <= 0) return [];
-			for (var i in segments) {
-				if (!segments[i] || segments[i].trim().length <= 0) continue;
-				numbers.push(parseInt(segments[i].trim()));
-			}
-			return numbers;
 		}
 	};
 };

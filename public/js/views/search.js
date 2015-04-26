@@ -73,25 +73,46 @@ define(["Underscore", "text!templates/search.html", "text!templates/companyListS
 				collection = this.collection;
 
 			var departementSegments = $("input[name='executive[departement]']").val() ? $("input[name='executive[departement]']").val().split(',') : [];
+			var departementNegated = false;
 			var departementRegexStr = "";
 			for (var i in departementSegments) {
 				if (!departementSegments[i] || departementSegments[i].length <= 0) continue;
+
+				if (departementSegments[i].indexOf("not:") == 0) {
+					departementSegments[i] = departementSegments[i].substr(4);
+					departementNegated = true;
+				}
+
 				if (departementRegexStr.length > 0) departementRegexStr += "|";
 				departementRegexStr += ".\*" + departementSegments[i].trim() + ".\*";
 			}
 
 			var positionSegments = $("input[name='executive[position]']").val() ? $("input[name='executive[position]']").val().split(',') : [];
+			var positionNegated = false;
 			var positionRegexStr = "";
 			for (var i in positionSegments) {
 				if (!positionSegments[i] || positionSegments[i].length <= 0) continue;
+
+				if (positionSegments[i].indexOf("not:") == 0) {
+					positionSegments[i] = positionSegments[i].substr(4);
+					positionNegated = true;
+				}
+
 				if (positionRegexStr.length > 0) positionRegexStr += "|";
 				positionRegexStr += ".\*" + positionSegments[i].trim() + ".\*";
 			}
 
 			var locationSegments = $("input[name='executive[location]']").val() ? $("input[name='executive[location]']").val().split(',') : [];
+			var locationNegated = false;
 			var locationRegexStr = "";
 			for (var i in locationSegments) {
 				if (!locationSegments[i] || locationSegments[i].length <= 0) continue;
+
+				if (locationSegments[i].indexOf("not:") == 0) {
+					locationSegments[i] = locationSegments[i].substr(4);
+					locationNegated = true;
+				}
+
 				if (locationRegexStr.length > 0) locationRegexStr += "|";
 				locationRegexStr += ".\*" + locationSegments[i].trim() + ".\*";
 			}
@@ -100,8 +121,11 @@ define(["Underscore", "text!templates/search.html", "text!templates/companyListS
                 "model": collection.toJSON(),
                 "state": collection.state,
                 "departementRegex": departementRegexStr && departementRegexStr.length > 0 ? new RegExp(departementRegexStr) : null,
+                "departementNegated": departementNegated,
                 "positionRegex": positionRegexStr && positionRegexStr.length > 0 ? new RegExp(positionRegexStr) : null,
-                "locationRegex": locationRegexStr && locationRegexStr.length > 0 ? new RegExp(locationRegexStr) : null
+                "positionNegated": positionNegated,
+                "locationRegex": locationRegexStr && locationRegexStr.length > 0 ? new RegExp(locationRegexStr) : null,
+                "locationNegated": locationNegated
             });
 
 			$('.results').html(t);

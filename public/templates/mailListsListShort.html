@@ -7,7 +7,7 @@
 			<th>Gesendet</th>
 			<th>Ausstehend</th>
 			<th>Antworten</th>
-			<th>Template</th>
+			<th></th>
 		</tr>
 	</thead>
 	<tbody>
@@ -18,7 +18,6 @@
 				<% if (model[i].created) { %> 
 					<%= model[i].created ? moment(model[i].created).calendar() : "" %>
 				<% } %>
-				<a href="/!/mail/list/<%= model[i]._id %>" class="btn btn-primary"><i class="fa fa-angle-double-right"></i></a>
 			</td>
 			<td>
 				<%= (model[i].sendTo ? model[i].sendTo.length : "0") %>	Personen / 
@@ -39,9 +38,7 @@
 				<%= (model[i].answers ? model[i].answers.length : "0") %>
 			</td>
 			<td>
-				<% console.log(model[i].template); if (model[i].template && model[i].template.subject && model[i].template.content) { %>
-				<a class="btn btn-default" tabindex="9999" role="button" data-trigger="focus" data-placement="left" data-toggle="popover" title="<%= model[i].template.subject.replace(/<br\s*[\/]?>/gi, "\n").replace(/<\/?[^>]+(>|$)/g, "").replace('\"', '\\"').replace("\n", "<br/>") %>" data-content="<%= model[i].template.content.replace(/<br\s*[\/]?>/gi, "\n").replace(/<\/?[^>]+(>|$)/g, "").replace('\"', '\\"').replace("\n", "<br/>") %>">anzeigen</a>
-				 <% } %>
+				<a href="/!/mail/list/<%= model[i]._id %>" class="btn btn-primary"><i class="fa fa-angle-double-right"></i></a>
 			</td>
 		</tr>
 	<% } %>

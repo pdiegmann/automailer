@@ -1,6 +1,12 @@
 <% if (model) { %>
   <h3>MailListe von <%= moment(model.created).calendar() %></h3>
-  <h6>an <%= (model.sendTo ? model.sendTo.length : "0") %>  Personen / <%= (model.preparedMails && model.sentMails ? (model.preparedMails.length + model.sentMails.length) : "0") %> Adressen</h6>
+  <h6>an <%= (model.sendTo ? model.sendTo.length : "0") %>  Personen <!--/ 
+  <%  if (model.preparedMails && model.sentMails && !isNaN(model.preparedMails.length) && !isNaN(model.sentMails.length)) { print(parseInt(model.preparedMails.length) + parseInt(model.sentMails.length)); }
+      else if(model.preparedMails && !isNaN(model.preparedMails.length)) { print(model.preparedMails.length); }
+      else if(model.sentMails && !isNaN(model.sentMails.length)) { print(model.sentMails.length); }
+      else { print("0"); }
+  %> Adressen-->
+  </h6>
   <span><%= (model.sentMails ? model.sentMails.length : "0") %> 
   <% if (model.from) { %> als "<%= model.from.name %>" <%= model.from.address %> <% } %>
   gesendet.</span>
