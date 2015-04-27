@@ -953,7 +953,34 @@ module.exports = function(db) {
 				});
 			};
 
+			var messagesFetchedAndParsed = function() {
+				var mailCount = mailsToProcess.length;
+				logger.log('Done fetching ' + mailCount + ' messages!');
+
+				var counter = 0;
+				async.eachSeries(mailsToProcess, function(mailAndMsg, callback) {
+					logger.log("processed " + counter + " / " + mailCount);
+					processMail(mailAndMsg.mail, mailAndMsg.msg, callback);
+					counter++;
+				}, function(err) {
+					try { imap.end(); }
+					catch (e) { logger.error(e); }
+
+					var elapsed = process.hrtime(start)[1] / 1000000; // divide by a million to get nano to milli
+					logger.log("mails fetched and processsed in " + (elapsed / 1000).toFixed(2) + "s");
+
+					if (err) {
+						logger.error(err);
+						return res.send(500);
+					}
+
+					return res.send(200);
+				});
+			};
+
 			var mailsToProcess = [];
+
+			var messagesStillParsing = 0;
 
 			imap.once('ready', function() {
 				imap.openBox('INBOX', false, function(err, box) {
@@ -980,9 +1007,15 @@ module.exports = function(db) {
 
 						f.on('message', function(msg, seqno) {
 							msg.on('body', function(stream, info) {
+								messagesStillParsing++;
 								var mailparser = new MailParser({ streamAttachments: false });
 								mailparser.on("end", function(mail) {
 									mailsToProcess.push({ mail: mail, msg: msg });
+									messagesStillParsing--;
+
+									if (messagesStillParsing <= 0) {
+										messagesFetchedAndParsed();
+									}
 								});
 
 								stream.pipe(mailparser);
@@ -1003,28 +1036,9 @@ module.exports = function(db) {
 						});
 
 						f.once('end', function() {
-							var mailCount = mailsToProcess.length;
-							logger.log('Done fetching ' + mailCount + ' messages!');
+							if (messagesStillParsing > 0) return;
 
-							var counter = 0;
-							async.eachSeries(mailsToProcess, function(mailAndMsg, callback) {
-								logger.log("processed " + counter + " / " + mailCount);
-								processMail(mailAndMsg.mail, mailAndMsg.msg, callback);
-								counter++;
-							}, function(err) {
-								try { imap.end(); }
-								catch (e) { logger.error(e); }
-
-								var elapsed = process.hrtime(start)[1] / 1000000; // divide by a million to get nano to milli
-								logger.log("mails fetched and processsed in " + (elapsed / 1000).toFixed(2) + "s");
-
-								if (err) {
-									logger.error(err);
-									return res.send(500);
-								}
-
-								return res.send(200);
-							});
+							messagesFetchedAndParsed();
 						});
 					});
 				});
