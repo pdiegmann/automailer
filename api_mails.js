@@ -15,8 +15,8 @@ module.exports = function(db) {
 			if (isNaN(skip) || skip < 0) skip = 0;
 			skip = parseInt(skip);
 
-			db.MailModel.count({ dataset: datasetid }, function(err, count) {
-				db.MailModel.find({ dataset: datasetid }, { __v: 0 }).sort({ created: -1 }).populate("responseTo", "-__v").populate("person", "-__v -raw").limit(take).skip(skip).exec(function(err, docs) {
+			db.MailModel.count({ dataset: datasetid, received: { "$ne": null } }, function(err, count) {
+				db.MailModel.find({ dataset: datasetid, received: { "$ne": null } }, { __v: 0 }).sort({ received: -1 }).populate("responseTo", "-__v").populate("person", "-__v -raw").limit(take).skip(skip).exec(function(err, docs) {
 					if (err) {
 						logger.error(err);
 						return res.send(500);

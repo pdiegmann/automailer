@@ -79,6 +79,7 @@ function connectToSmtpServer() {
 		tls: sender.smtp.tls,
 		port: sender.smtp.port
 	});
+	logger.log(smtpServer);
 }
 
 function processMailings() {
