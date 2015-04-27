@@ -222,6 +222,7 @@ module.exports = function(db) {
 
 		getPersonFromString: function(string, companyId, datasetId) {
 			if (!string || string.length <= 0) return null;
+			string = string.replace("Dipl,", "Dipl.").replace("(en)", "");
 			var segments = string.split(",");
 			var segmentsLength = segments.length;
 			if (!segments || segmentsLength <= 1) return null;
@@ -234,24 +235,9 @@ module.exports = function(db) {
 			person.departement = person.position;
 
 			var nameSegments = segments[1].replace(" .", "").split(" ");
-			var nameSegmentsLength = nameSegments.length;
+			var nameSegmentsLength = nameSegments ? nameSegments.length : 0;
 
 			var nestedDepartementClosed = true;
-
-			// e.g. "Aufsichtsrat, Ulrich Ehrhardt (stellv. Vors.)"
-			// and not e.g. "Geschäftsführer, Volker Hipp, Ulm, Donau"
-			if (nameSegments && nameSegments[nameSegmentsLength - 1] && nameSegments[nameSegmentsLength - 1].trim().startsWith("(")) { // && nameSegments[-1].endsWith(")")) {
-				// e.g. "... (IT/EDV)"
-				person.departement = nameSegments[nameSegmentsLength - 1].trim();
-				person.departement = person.departement.substring(1).trim();
-				nameSegmentsLength -= 1;
-
-				if (person.departement.endsWith(")")) person.departement = person.departement.substring(0, person.departement.length - 1).trim();
-				else nestedDepartementClosed = false;
-			}
-
-			// Suggestion: Double last names always have a -
-			person.lastName = nameSegments[nameSegmentsLength - 1];
 			
 			person.firstName = "";
 			person.title = "";
@@ -275,8 +261,27 @@ module.exports = function(db) {
 			if (titleOffset <= 0) person.title = undefined;
 
 			// append all first names
-			for (var i = titleOffset; i < nameSegmentsLength - 1; i++) {
+			for (var i = titleOffset; i < nameSegmentsLength; i++) {
+				if (nameSegments[i].startsWith("(")) {
+					nestedDepartementClosed = false;
+				}
+				if (!nestedDepartementClosed) {
+					person.departement = nameSegments[i].trim();
+					person.departement = person.departement.replace("(", "").replace(")", "").trim();
+
+					if (nameSegments[i].endsWith(")")) {
+						nestedDepartementClosed = true;
+					}
+					continue;
+				}
 				person.firstName = person.firstName && person.firstName.length > 0 ? person.firstName + " " + nameSegments[i].trim() : nameSegments[i].trim();
+			}
+
+			if (!person.lastName || person.lastName.length <= 0) {
+				// Suggestion: Double last names always have a -
+				var firstNameSegments = person.firstName.split(" ");
+				person.lastName = firstNameSegments.pop().trim();
+				person.firstName = firstNameSegments.join(" ");
 			}
 
 			// end is always location such as "..., Stade, Niederelbe"
@@ -296,11 +301,15 @@ module.exports = function(db) {
 				}
 			}
 
+			//console.log("title: " + person.title + " firstName: " + person.firstName + " lastName: " + person.lastName + " position: " + person.position + " departement: " + person.departement + " location: " + person.location);
+
 			return person;
 		},
 
-		guessMailAddresses: function(person, company, callback) {
+		guessMailAddresses: function(person, company, callback, force) {
 			if (!person) return;
+
+			force = force !== undefined ? force : true;
 
 			if (!company) {
 				var that = this;
@@ -328,62 +337,90 @@ module.exports = function(db) {
 
 			var firstNameAlternatives = [];
 			if (firstName && firstName.length > 0) {
+				firstNameAlternatives = [firstName, "", firstName[0]];
+
 				if (firstName.indexOf(" ") > -1) {
-					firstNameAlternatives = [
-						firstName[0],
-						firstName.replace(" ", ""),
+					firstNameAlternatives = firstNameAlternatives.concat([
 						firstName.replace(" ", "."),
 						firstName.replace(" ", "_"),
-						//firstName.replace(" ", "-"),
+						//firstName.replace(" ", "-")
+					]);
+				}
+
+				if (firstName.indexOf("-") > -1) {
+					firstNameAlternatives = firstNameAlternatives.concat([
 						firstName.replace("-", ""),
 						firstName.replace("-", "."),
 						firstName.replace("-", "_")
-					];
-				}
-				else {
-					firstNameAlternatives = [firstName[0], firstName];
+					]);
 				}
 			}
 
 			var lastNameAlternatives = [];
 			if (lastName && lastName.length > 0) {
+				lastNameAlternatives = [lastName];
+
 				if (lastName.indexOf(" ") > -1) {
-					lastNameAlternatives = [
-						lastName.replace(" ", ""),
+					lastNameAlternatives = lastNameAlternatives.concat([
 						lastName.replace(" ", "."),
 						lastName.replace(" ", "_"),
-						//lastName.replace(" ", "-"),
+						//lastName.replace(" ", "-")
+					]);
+				}
+				
+				if (lastName.indexOf("-") > -1) {
+					lastNameAlternatives = lastNameAlternatives.concat([
 						lastName.replace("-", ""),
 						lastName.replace("-", "."),
 						lastName.replace("-", "_")
-					];
-				}
-				else {
-					lastNameAlternatives = [lastName];
+					]);
 				}
 			}
 
 			var mailAddresses = [];
-			person.mailAddresses = [];
-			for (var i = 0; i < lastNameAlternatives.length; i++) {
-				// last name
-				var mailAddress = lastNameAlternatives[i] + "@" + companyDomain;
-				mailAddresses.push(mailAddress);
-				person.mailAddresses.push({ address: mailAddress, state: 0 });
+			if (force === true) person.mailAddresses = [];
+			else {
+				for (var i = 0; i < person.mailAddresses.length; i++) {
+					mailAddresses.push(person.mailAddresses[i].address);
+				}
+			}
 
+			for (var i = 0; i < lastNameAlternatives.length; i++) {
+				var mailAddress;
 
 				// first name, last name
 				for (var j = 0; j < firstNameAlternatives.length; j++) {
-					mailAddress = firstNameAlternatives[j] + "." + lastNameAlternatives[i] + "@" + companyDomain;
+					mailAddress = (firstNameAlternatives[j].length > 0 ? (firstNameAlternatives[j] + ".") : "") + lastNameAlternatives[i] + "@" + companyDomain;
+					if (mailAddresses.indexOf(mailAddress) < 0) {
+						mailAddresses.push(mailAddress);
+						person.mailAddresses.push({ address: mailAddress, state: 0 });
+					}
+					// else {
+					//	logger.log("mail address already known: " + mailAddress);
+					// }
+				}
+
+				// last name
+				mailAddress = lastNameAlternatives[i] + "@" + companyDomain;
+				if (mailAddresses.indexOf(mailAddress) < 0) {
 					mailAddresses.push(mailAddress);
 					person.mailAddresses.push({ address: mailAddress, state: 0 });
 				}
+				// else {
+				//	logger.log("mail address already known: " + mailAddress);
+				// }
 
 				// last name, first name
 				for (var j = 0; j < firstNameAlternatives.length; j++) {
+					if (firstNameAlternatives[j].length <= 0) continue;
 					mailAddress = lastNameAlternatives[i] + "." + firstNameAlternatives[j] + "@" + companyDomain;
-					mailAddresses.push(mailAddress);
-					person.mailAddresses.push({ address: mailAddress, state: 0 });
+					if (mailAddresses.indexOf(mailAddress) < 0) {
+						mailAddresses.push(mailAddress);
+						person.mailAddresses.push({ address: mailAddress, state: 0 });
+					}
+					// else {
+					//	logger.log("mail address already known: " + mailAddress);
+					// }
 				}
 			}
 

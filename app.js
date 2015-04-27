@@ -122,6 +122,11 @@ app.configure(function() {
   	}));
 });
 
+app.on('connection', function(socket) {
+	logger.log("A new connection was made by a client.");
+	socket.setTimeout(10 * 60 * 1000); 
+})
+
 /**** DATASET INITS ****/
 app.delete('/dataset/:datasetid', api_dataset.delete);
 
@@ -132,6 +137,8 @@ app.get('/dataset/:datasetid/randomizeOrder', api_company.randomizeOrder);
 app.get('/dataset/:datasetid/names/:gender/put/:names', api_dataset.initNamesWithGenders);
 
 app.get('/dataset/:datasetid/persons/guess/gender', api_dataset.guessGender);
+
+app.get('/dataset/:datasetid/persons/guess/mailaddresses', api_dataset.guessMailAddresses);
 
 app.get('/dataset/:datasetid/filter', api_company.filter);
 
@@ -158,6 +165,9 @@ app.get('/dataset/:datasetid/mails', api_mails.getMails);
 /**** MAILINGLISTS ****/
 
 app.get('/dataset/:datasetid/mail/lists', api_mailinglists.getMailingLists);
+
+app.get('/dataset/:datasetid/mail/list/export', api_mailinglists.exportCSV);
+app.get('/dataset/:datasetid/mail/list/export/:maillistid', api_mailinglists.exportCSV);
 
 app.get('/dataset/:datasetid/mail/list/:maillistid/all', api_mailinglists.getMailingList);
 

@@ -1,9 +1,64 @@
 var logger = require('tracer').colorConsole();
 var async = require('async');
 var mongoose = require("mongoose");
+var Buffer = require('buffer');
 
 module.exports = function(db) {
 	return {
+		exportCSV: function(req, res, next) {
+			var datasetid = req.params.datasetid;
+			var maillistid = req.params.maillistid;
+
+			var query;
+			if (maillistid && maillistid.length > 0) {
+				query = { dataset: datasetid, _id: maillistid };
+			}
+			else {
+				query = { dataset: datasetid };	
+			}
+
+			db.MailingListModel.find(query)
+			.populate("sendTo", "-__v -raw")
+			.exec(function(err, mailingLists) {
+				if (err) {
+					logger.error(err);
+					res.write("\n\nERROR");
+					return res.end();
+				}
+
+				if (!mailingLists) {
+					res.write("\n\nNo Mailing Lists");
+					return res.end();	
+				}
+
+				var now = new Date();
+				var friendlyDate = now.getFullYear() + "_" + ("0" + (now.getMonth() + 1)).slice(-2) + "_" + ("0" + now.getDate()).slice(-2) + "_" + now.getHours() + "_" + now.getMinutes() + "_" + now.getSeconds();
+
+				res.writeHead(200, {
+			        'Content-Type': 'text/csv; charset=latin1',
+			        'Content-Encoding': 'latin1',
+			        'Content-Disposition': 'attachment; filename="export_' + friendlyDate + '.csv"'
+			    });
+
+				res.write("Vorname;Nachname;Position;Department;Firma;Datenbank;ID\n");
+				async.eachSeries(mailingLists, function(mailingList, callback) {
+					async.eachSeries(mailingList.sendTo, function(receiver, callback) {
+						receiver.populate("company", "-__v -raw", function(err, receiver) {
+							var str = receiver.firstName.replace(";", ",") + ";" + receiver.lastName.replace(";", ",") + ";" + receiver.position.replace(";", ",") + ";" + receiver.departement.replace(";", ",") + ";" + receiver.company.name.replace(";", ",") + ";" + receiver.company.publisher.replace(";", ",") + ";" + receiver.company.publisherId.replace(";", ",").replace(".", "").trim() + "\n";
+							res.write(str, "latin1");
+							callback();
+						});
+					}, callback);
+				}, function(err) {
+					if (err) {
+						logger.error(err);
+						res.write("\n\nERROR");
+					}
+					return res.end();
+				})
+			});
+		},
+
 		getMailingList: function(req, res, next) {
 			var datasetid = req.params.datasetid;
 			var maillistid = req.params.maillistid;

@@ -57,24 +57,25 @@ module.exports = function(db) {
 			//var departements = global.stringArrayToRegexArray(executive.departement);
 			//var positions = global.stringArrayToRegexArray(executive.position);
 			//var locations = global.stringArrayToRegexArray(executive.location);
+
 			var departements = global.stringToRegexQuery(executive.departement);
 			var positions = global.stringToRegexQuery(executive.position);
 			var locations = global.stringToRegexQuery(executive.location);
-
-			var orQueries = [];
-			if (departements) { // && departements.length > 0) {
-				orQueries.push({ "departement": departements }); // { $in : departements } });
+			
+			var subQueries = [];
+			if (departements) {
+				subQueries.push({ "departement": departements });
 			}
-			if (positions) { // && positions.length > 0) {
-				orQueries.push({ "position": positions }); // { $in : positions } });
+			if (positions) {
+				subQueries.push({ "position": positions });
 			}
-			if (locations) { // && locations.length > 0) {
-				orQueries.push({ "location": locations }); // { $in : locations } });
+			if (locations) {
+				subQueries.push({ "location": locations });
 			}
 
 			var query;
-			if (orQueries.length > 0) {
-				query = { dataset: datasetid, "active": true, $and: orQueries };
+			if (subQueries.length > 0) {
+				query = { dataset: datasetid, "active": true, $and: subQueries };
 			}
 			else {
 				query = { dataset: datasetid, "active": true };

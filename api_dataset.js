@@ -187,21 +187,41 @@ module.exports = function(db) {
 			});
 		},
 
-		guessGender: function(req, res, next) {
+		guessMailAddresses: function(req, res, next) {
 			var datasetid = req.params.datasetid;
 
-			db.PersonModel.find({ "dataset": datasetid, "active": true }, function(err, persons) {
+			db.PersonModel.count({ "dataset": datasetid, "active": true }, function(err, count) {
 				if (err) {
 					logger.error(err);
 					return res.send(500);
 				}
 
-				if (!persons || persons.length <= 0) {
-					return res.send(404);
-				}
+				var processed = 0;
+				async.whilst(function() { logger.log(processed + " < " + count + " = " + (processed < count)); return processed < count; }, function(callback) {
+					db.PersonModel
+					.find({ "dataset": datasetid, "active": true }, { __v: 0, raw: 0 })
+					.populate("company", "-__v -raw")
+					.skip(processed)
+					.limit(1000)
+					.exec(function(err, persons) {
+						if (err) {
+							logger.error(err);
+							return res.send(500);
+						}
 
-				async.each(persons, function(person, callback) {
-					csv_interpreter.guessGender(person, datasetid, callback);
+						if (!persons || persons.length <= 0) {
+							return res.send(404);
+						}
+
+						var length = persons.length;
+						
+						async.eachLimit(persons, 5, function(person, callback) {
+							csv_interpreter.guessMailAddresses(person, person.company, callback, false);
+						}, function(err) {
+							processed += length;
+							callback(err);
+						})
+					});
 				}, function(err) {
 					if (err) {
 						logger.error(err);
@@ -209,7 +229,52 @@ module.exports = function(db) {
 					}
 
 					return res.send(200);
-				})
+				});
+			});
+		},
+
+		guessGender: function(req, res, next) {
+			var datasetid = req.params.datasetid;
+
+			db.PersonModel.count({ "dataset": datasetid, "active": true }, function(err, count) {
+				if (err) {
+					logger.error(err);
+					return res.send(500);
+				}
+
+				var processed = 0;
+				async.whilst(function() { logger.log(processed + " < " + count + " = " + (processed < count)); return processed < count; }, function(callback) {
+					db.PersonModel
+					.find({ "dataset": datasetid, "active": true }, { __v: 0, raw: 0 })
+					.skip(processed)
+					.limit(2500)
+					.exec(function(err, persons) {
+						if (err) {
+							logger.error(err);
+							return res.send(500);
+						}
+
+						if (!persons || persons.length <= 0) {
+							return res.send(404);
+						}
+
+						var length = persons.length;
+						
+						async.eachLimit(persons, 5, function(person, callback) {
+							csv_interpreter.guessGender(person, datasetid, callback);
+						}, function(err) {
+							processed += length;
+							callback(err);
+						})
+					});
+				}, function(err) {
+					if (err) {
+						logger.error(err);
+						return res.send(500);
+					}
+
+					return res.send(200);
+				});
 			});
 		},
 

@@ -108,7 +108,7 @@ function processMailings() {
 				text: mail.body.replace(/<br\s*[\/]?>/gi, "\n").replace(/<\/?[^>]+(>|$)/g, ""), 
 				from: mail.from,
 				"reply-to": mail.from,
-				to: "mail@phildiegmann.com", //mail.to,
+				to: mail.to,
 				subject: mail.subject,
 				"message-id": "<" + mail._id + "." + mailingListId + "." + datasetId + "@" + os.hostname() +">", 
 				attachment: [

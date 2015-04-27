@@ -171,7 +171,7 @@ define(["text!templates/maillist.html", "text!templates/mailListShort.html", "mo
 				$('[data-action="edit"][data-mailid="' + $e.data("mailid") + '"]').show(0);
 				$('[data-action="delete"][data-mailid="' + $e.data("mailid") + '"]').show(0);
 
-				$.post("/dataset/" + $('#dataset-selector').val() + "/mail/list/" + this.model.id + "/delete/mail/" + $e.data("mailid"), function(res) {
+				$.post("/dataset/" + $('#dataset-selector').val() + "/mail/list/" + this.collection.mailList._id + "/delete/mail/" + $e.data("mailid"), function(res) {
 					$('tr[data-mailid="' + $e.data("mailid") + '"]').remove();
 					$('[data-action][data-mailid="' + $e.data("mailid") + '"]').removeClass("disabled");
 				});
@@ -220,7 +220,7 @@ define(["text!templates/maillist.html", "text!templates/mailListShort.html", "mo
 				}
 			});
 
-			$.post("/dataset/" + $('#dataset-selector').val() + "/mail/list/" + this.model.id + "/update/mail/" + $e.data("mailid"), data, function(res) {
+			$.post("/dataset/" + $('#dataset-selector').val() + "/mail/list/" + this.collection.mailList._id + "/update/mail/" + $e.data("mailid"), data, function(res) {
 				$('[data-action][data-mailid="' + $e.data("mailid") + '"]').removeClass("disabled");
 			});
 		},

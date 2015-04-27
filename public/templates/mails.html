@@ -33,20 +33,20 @@
 					<div class="form-group form-group-sm">
 						<label for="mail[imap][server]" class="col-sm-2 control-label">Server:</label>
 						<div class="col-sm-9 col-sm-offset-1" style="margin-top: 0.33em;">
-							<input class="form-control" type="text" name="mail[imap][server]" placeholder="IMAP-Server" />
+							<input class="form-control" type="text" name="mail[imap][server]" placeholder="IMAP-Server" value="imap.uni-koeln.de" />
 						</div>
 					</div>
 					<div class="form-group form-group-sm">
 						<label for="mail[imap][port]:number" class="col-sm-2 control-label">Port:</label>
 						<div class="col-sm-9 col-sm-offset-1" style="margin-top: 0.33em;">
-							<input class="form-control" type="number" min="0" max="99999" name="mail[imap][port]:number" placeholder="IMAP-Port" />
+							<input class="form-control" type="number" min="0" max="99999" name="mail[imap][port]:number" placeholder="IMAP-Port" value="993" />
 						</div>
 					</div>
 					<div class="form-group">
 						<div class="col-sm-offset-3 col-sm-9">
 							<div class="checkbox">
 								<label>
-									<input type="checkbox" name="mail[imap][tls]:boolean"> TLS
+									<input type="checkbox" name="mail[imap][tls]:boolean" checked=""> TLS
 								</label>
 							</div>
 						</div>

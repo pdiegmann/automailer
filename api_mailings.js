@@ -49,7 +49,7 @@ module.exports = function(db) {
 					global.shuffleArray(mailingList.sendTo);
 				}
 
-				async.each(mailingList.sendTo, function(receiver, callback) {
+				async.eachSeries(mailingList.sendTo, function(receiver, callback) {
 					logger.log("going for " + receiver.firstName + " " + receiver.lastName);
 					var done = false;
 					var i = 0;
@@ -73,7 +73,7 @@ module.exports = function(db) {
 
 							var nextAddress;
 
-							async.each(receiver.mailAddresses, function(nextMailAddressCandidate, callback) {
+							async.eachSeries(receiver.mailAddresses, function(nextMailAddressCandidate, callback) {
 								if (nextAddress || !nextMailAddressCandidate) return callback();
 								if (parameters.settings.includeAddressStates[nextMailAddressCandidate.state] !== true) return callback();
 								nextAddress = nextMailAddressCandidate;
@@ -114,7 +114,7 @@ module.exports = function(db) {
 										"receiver": receiver.toJSON()
 									});
 
-									mail.to = nextAddress.address.indexOf("pdiegman") >= 0 || nextAddress.address.indexOf("phildiegman") >= 0 ? nextAddress.address : mailingList.from.address;
+									mail.to = nextAddress.address;
 									mail.from = ((mailingList.from.name && mailingList.from.name.length > 0) ? ("\"" + mailingList.from.name + "\" ") : "") + "<" + mailingList.from.address + ">";
 									mail.person = receiver._id;
 									mail.dataset = datasetid;
@@ -187,26 +187,25 @@ module.exports = function(db) {
 			var positions = global.stringToRegexQuery(executive.position);
 			var locations = global.stringToRegexQuery(executive.location);
 
-			var orQueries = [];
+			var subQueries = [];
 			if (departements) {
-				orQueries.push({ "departement": departements });
+				subQueries.push({ "departement": departements });
 			}
 			if (positions) {
-				orQueries.push({ "positions": positions });
+				subQueries.push({ "position": positions });
 			}
 			if (locations) {
-				orQueries.push({ "location": locations });
+				subQueries.push({ "location": locations });
 			}
 
 			var query;
-			if (orQueries.length > 0) {
-				query = { dataset: datasetid, "active": true, $and: orQueries };
+			if (subQueries.length > 0) {
+				query = { dataset: datasetid, "active": true, $and: subQueries };
 			}
 			else {
 				query = { dataset: datasetid, "active": true };
 			}
 
-			logger.log(JSON.stringify(orQueries));
 			logger.log(JSON.stringify(query));
 
 			var personIdsToContact = [];
@@ -374,7 +373,7 @@ module.exports = function(db) {
 												"receiver": receiver.toJSON()
 											});
 
-											mail.to = mailAddress.address.indexOf("pdiegman") >= 0 || mailAddress.address.indexOf("phildiegman") >= 0 ? mailAddress.address : parameters.sender.address;
+											mail.to = mailAddress.address;
 											mail.from = ((parameters.sender.name && parameters.sender.name.length > 0) ? ("\"" + parameters.sender.name + "\" ") : "") + "<" + parameters.sender.address + ">";
 											mail.person = receiver._id;
 											mail.dataset = mailingList.dataset;
@@ -466,7 +465,7 @@ module.exports = function(db) {
 				orQueries.push({ "departement": { $in : departements } });
 			}
 			if (positions && positions.length > 0) {
-				orQueries.push({ "positions": { $in : positions } });
+				orQueries.push({ "position": { $in : positions } });
 			}
 			if (positions && positions.length > 0) {
 				orQueries.push({ "location": { $in : positions } });
@@ -664,15 +663,7 @@ module.exports = function(db) {
 			var mails = [];
 			var start = process.hrtime();
 
-			var parsingFinishedCount = 0;
-			var imapCMDsRunning = 0;
-			var processingFinishedCount = 0;
-			var mailsReceivedCount = 0;
-			var allMailsReceived = false;
-
 			var datasetid = req.params.datasetid;
-
-			var mailparser = new MailParser({ streamAttachments: false });
 
 			var settings = req.param("mail");
 			settings.imap.port = parseInt(settings.imap.port);
@@ -688,15 +679,281 @@ module.exports = function(db) {
 				port: settings.imap.port
 			});
 
-			var checkForReturn = function(force) {
-				logger.log("processed: " + processingFinishedCount + " / " + mailsReceivedCount + " parsed: " + parsingFinishedCount + " / " + mailsReceivedCount + " imap CMDs running: " + imapCMDsRunning + " all received: " + allMailsReceived + " force: " + force);
-				if ((force && force === true) || (allMailsReceived === true && parsingFinishedCount >= mailsReceivedCount && processingFinishedCount >= mailsReceivedCount) && imapCMDsRunning <= 0) {
-					try { imap.end(); }
-					catch (e) { logger.error(e); }
-					var elapsed = process.hrtime(start)[1] / 1000000; // divide by a million to get nano to milli
-					return res.send(200);
+			var processMail = function(mail, msg, callback) {
+				mail.deliveryFailed = false;
+				logger.log("processing from: " + mail.from[0].address);
+
+				var replyTo = mail.headers["inReplyTo"];
+				if (!replyTo) replyTo = mail.headers["InReplyTo"];
+				if (!replyTo) replyTo = mail.headers["inreplyto"];
+				if (!replyTo) replyTo = mail.headers["in-reply-to"];
+				if (!replyTo) replyTo = mail.headers["In-Reply-To"];
+				if (!replyTo) replyTo = mail.headers["in-Reply-To"];
+
+				var mailIdCandidate;
+				var maillistIdCandidate;
+				var datasetIdCandidate;
+				var indexOfAt = replyTo ? replyTo.indexOf("@") : -1;
+				if (replyTo && (replyTo.match(/\./g) || []).length >= 2 && indexOfAt >= 0) {
+					var ids = replyTo.substr(0, indexOfAt).split(".");
+					mailIdCandidate = ids[0].replace(/[^a-z0-9]/gi, "");
+					maillistIdCandidate = ids[1].replace(/[^a-z0-9]/gi, "");
+					datasetIdCandidate = ids[2].replace(/[^a-z0-9]/gi, "");
+
+					if (!mailIdCandidate || mailIdCandidate.length <= 0) mailIdCandidate = undefined;
+					if (!maillistIdCandidate || maillistIdCandidate.length <= 0) maillistIdCandidate = undefined;
+					if (!datasetIdCandidate || datasetIdCandidate.length <= 0) datasetIdCandidate = undefined;
 				}
+
+				var contents = "";
+
+				logger.log("prechecks done");
+
+				if (mail.attachments) {
+					for (var i = 0; i < mail.attachments.length; i++) {
+						var attachment = mail.attachments[i];
+						if (!attachment) continue;
+
+						if (attachment.contentType && attachment.contentType === "message/delivery-status") {
+							var content = attachment.content.toString();
+							var indexOfAction = content.indexOf("Action: failed");
+							if (indexOfAction >= 0 || content.indexOf("Status: 5." >= 0)) {
+								var address = "";
+								var indexOfFinalRecipient = content.indexOf("Final-Recipient:");
+								if (indexOfAction >= 0) {
+									var finalRecipientLength = "Final-Recipient:".length;
+									var failedAddress = content.substr(indexOfFinalRecipient, indexOfAction - indexOfFinalRecipient).split(";").pop().trim();
+									mail.from = [{
+										name: "",
+										address: failedAddress
+									}];
+								}
+								mail.deliveryFailed = true;
+								if (contents.length > 0) contents += "\n\n----\n\n";
+								contents += content;
+							}
+						}
+						else {
+							var content = attachment.content.toString();
+							if ((!mailIdCandidate || !maillistIdCandidate || !datasetIdCandidate) && (content.indexOf("Message-Id") >= 0 || content.indexOf("Message-ID") >= 0 || content.indexOf("message-id") >= 0 || content.indexOf("MessageId") >= 0 || content.indexOf("MessageID") >= 0 || content.indexOf("messageid") >= 0)) {//attachment.contentType && attachment.contentType === "text/rfc822-headers")) {
+								contents += content;
+								var indexOfMessageId = content.indexOf("Message-Id");
+								if (indexOfMessageId < 0) indexOfMessageId = content.indexOf("Message-ID");
+								if (indexOfMessageId < 0) indexOfMessageId = content.indexOf("message-id");
+								if (indexOfMessageId < 0) indexOfMessageId = content.indexOf("MessageId");
+								if (indexOfMessageId < 0) indexOfMessageId = content.indexOf("MessageID");
+								if (indexOfMessageId < 0) indexOfMessageId = content.indexOf("messageid");
+								if (indexOfMessageId >= 0) {
+									replyTo = content;
+									content = content.substr(indexOfMessageId).split(">")[0].trim();
+									content = content.split("<").pop().trim();
+
+									var indexOfAt = content ? content.indexOf("@") : -1;
+									if (indexOfAt >= 0) {
+										var ids = content.substr(0, indexOfAt).split(".");
+										if (ids.length < 3) {
+											continue;
+										}
+										mailIdCandidate = ids[0].replace(/[^a-z0-9]/gi, "");
+										maillistIdCandidate = ids[1].replace(/[^a-z0-9]/gi, "");
+										datasetIdCandidate = ids[2].replace(/[^a-z0-9]/gi, "");
+
+										if (!mailIdCandidate || mailIdCandidate.length <= 0) mailIdCandidate = undefined;
+										if (!maillistIdCandidate || maillistIdCandidate.length <= 0) maillistIdCandidate = undefined;
+										if (!datasetIdCandidate || datasetIdCandidate.length <= 0) datasetIdCandidate = undefined;
+
+										if (datasetIdCandidate && datasetIdCandidate !== datasetid) return callback();
+									}
+								}
+							}
+						}
+					}
+				}
+
+				logger.log("attachments done");
+
+				db.MailModel.findOne({ "dataset": datasetid, "_id": mailIdCandidate }, function (err, originalMail) {
+					if (err) {
+						logger.error(mail.from[0].address + ": error: ");
+						logger.error(err);
+						return callback();
+					}
+
+					if (!originalMail) {
+						logger.error(mail.from[0].address + ": no originalMail! replyTo: " + replyTo);
+						return callback();
+					}
+
+					logger.log("original mail found");
+
+					originalMail.bounced = mail.deliveryFailed;
+
+					originalMail.save(function(err) {
+						if (err) {
+							logger.error(err);
+						}
+					});
+
+					db.MailModel.findOne({ "dataset": datasetid, "externalId": "" + (msg.attributes && msg.attributes.uid ? msg.attributes.uid : seqno) }, function (err, oldResponse) {
+						if (err) {
+							logger.error(err);
+						}
+
+						var response = oldResponse ? oldResponse : new db.MailModel();
+
+						response.from = mail.from[0].address;
+						response.to = mail.to[0].address;
+						response.subject = mail.subject;
+						response.received = mail.date;
+						response.dataset = datasetid;
+						response.body = contents;
+						response.externalId = msg.attributes && msg.attributes.uid ? msg.attributes.uid : seqno;
+						response.inMailingList = maillistIdCandidate;
+
+						response.save(function(err) {
+							if (err) {
+								logger.error(err);
+								return callback();
+							}
+
+							logger.log("response saved");
+
+							async.series([function(callback) {
+								db.MailingListModel.findOne({ "dataset": datasetid, "_id": maillistIdCandidate }, function(err, mailingList) {
+									if (err) {
+										logger.error(err);
+										return callback();
+									}
+
+									if (!mailingList) {
+										logger.log("no mailing list");
+										return callback();
+									}
+
+									if (!mailingList.answers) mailingList.answers = [];
+									var found = false;
+									for (var k = 0; k < mailingList.answers.length; k++) {
+										if (mailingList.answers[k] + "" == response._id + "") {
+											found = true;
+											break;
+										}
+									}
+
+									if (!found) {
+										mailingList.answers.push(response._id);
+										mailingList.save(function(err) {
+											if (err) {
+												logger.error(err);
+											}
+											return callback();
+										});
+									}
+									else {
+										return callback();
+									}
+								});
+							},
+							function(callback) {
+								if (originalMail) {
+									response.person = originalMail.person;
+									response.responseTo = originalMail._id;
+
+									response.save(function(err) {
+										if (err) {
+											logger.error(err);
+										}
+										return callback();
+									});
+								}
+								else {
+									return callback();
+								}
+							},
+							function(callback) {
+								if (originalMail) {
+									db.PersonModel.findOne({ "dataset": datasetid, "active": true, "_id": originalMail.person }, function(err, person) {
+										if (err) {
+											logger.error(err);
+											return callback();
+										}
+
+										if (!person || !person.mailAddresses) {
+											return callback();
+										}
+
+										for (var i = 0; i < person.mailAddresses.length; i++) {
+											if (person.mailAddresses[i].address === mail.from[0].address) {
+												person.mailAddresses[i].state = mail.deliveryFailed === true ? 3 : 2;
+												break;
+											}
+										}
+
+										person.save(function(err) {
+											if (err) {
+												logger.error(err);
+											}
+											return callback();
+										});
+									});
+								}
+								else {
+									db.PersonModel.find({ "dataset": datasetid, "active": true, "mailAddresses.address": mail.from[0].address }, function(err, persons) {
+										if (err) {
+											logger.error(err);
+											return callback();
+										}
+
+										if (!persons || persons.length <= 0) {
+											return callback();
+										}
+
+										for (var j = 0; j < persons.length; j++) {
+											var person = persons[j];
+											if (!person || !person.mailAddresses) {
+												continue;
+											}
+
+											async.series([function(callback) {
+												var found = false;
+												for (var i = 0; i < person.mailAddresses.length; i++) {
+													if (person.mailAddresses[i].address === mail.from.address) {
+														found = true;
+														person.mailAddresses[i].state = mail.deliveryFailed === true ? 3 : 2;
+
+														response.person = person._id;
+														response.save(function(err) {
+															if (err) {
+																logger.error(err);
+															}
+															return callback();
+														});
+
+														break;
+													}
+												}
+												
+												if (!found) {
+													return callback();
+												}
+											},
+											function(callback) {
+												person.save(function(err) {
+													if (err) {
+														logger.error(err);
+														return callback();
+													}
+												});
+											}], callback);
+										}
+									});
+								}
+							}], callback);
+						});
+					});
+				});
 			};
+
+			var mailsToProcess = [];
 
 			imap.once('ready', function() {
 				imap.openBox('INBOX', false, function(err, box) {
@@ -707,7 +964,7 @@ module.exports = function(db) {
 						return res.send(500);
 					}
 
-					imap.search([ (settings.imap.unseenOnly === true ? 'UNSEEN' : 'ALL'), ['SINCE', 'January 01, 2015'] ], function(err, results) {
+					imap.search([ (settings.imap.unseenOnly === true ? 'UNSEEN' : 'ALL'), ['SINCE', 'April 01, 2015'] ], function(err, results) {
 						if (err) {
 							logger.error(err);
 							try { imap.end(); }
@@ -722,238 +979,10 @@ module.exports = function(db) {
 						var f = imap.fetch(results, { bodies: '', markSeen: true });
 
 						f.on('message', function(msg, seqno) {
-							mailsReceivedCount++;
-							var prefix = '(#' + seqno + ') ';
-
 							msg.on('body', function(stream, info) {
-								logger.log(prefix + 'Body');
-
+								var mailparser = new MailParser({ streamAttachments: false });
 								mailparser.on("end", function(mail) {
-									mail.deliveryFailed = false;
-
-									var replyTo = mail.headers["inReplyTo"];
-									if (!replyTo) replyTo = mail.headers["InReplyTo"];
-									if (!replyTo) replyTo = mail.headers["inreplyto"];
-									if (!replyTo) replyTo = mail.headers["in-reply-to"];
-									if (!replyTo) replyTo = mail.headers["In-Reply-To"];
-									if (!replyTo) replyTo = mail.headers["in-Reply-To"];
-
-									var mailIdCandidate;
-									var maillistIdCandidate;
-									var datasetIdCandidate;
-									var indexOfAt = replyTo ? replyTo.indexOf("@") : -1;
-									if (replyTo && (replyTo.match(/\./g) || []).length >= 2 && indexOfAt >= 0) {
-										var ids = replyTo.substr(0, indexOfAt).split(".");
-										mailIdCandidate = ids[0].replace(/[^a-z0-9]/gi, "");
-										maillistIdCandidate = ids[1].replace(/[^a-z0-9]/gi, "");
-										datasetIdCandidate = ids[2].replace(/[^a-z0-9]/gi, "");
-
-										if (!mailIdCandidate || mailIdCandidate.length <= 0) mailIdCandidate = undefined;
-										if (!maillistIdCandidate || maillistIdCandidate.length <= 0) maillistIdCandidate = undefined;
-										if (!datasetIdCandidate || datasetIdCandidate.length <= 0) datasetIdCandidate = undefined;
-									}
-
-									var contents = "";
-
-									if (mail.attachments) {
-										for (var i = 0; i < mail.attachments.length; i++) {
-											var attachment = mail.attachments[i];
-											if (!attachment) continue;
-
-											if (attachment.contentType && attachment.contentType === "message/delivery-status") {
-												var content = attachment.content.toString();
-												var indexOfAction = content.indexOf("Action: failed");
-												if (indexOfAction >= 0 || content.indexOf("Status: 5." >= 0)) {
-													var address = "";
-													var indexOfFinalRecipient = content.indexOf("Final-Recipient:");
-													if (indexOfAction >= 0) {
-														var finalRecipientLength = "Final-Recipient:".length;
-														var failedAddress = content.substr(indexOfFinalRecipient, indexOfAction - indexOfFinalRecipient).split(";").pop().trim();
-														mail.from = [{
-															name: "",
-															address: failedAddress
-														}];
-													}
-													mail.deliveryFailed = true;
-													if (contents.length > 0) contents += "\n\n----\n\n";
-													contents += content;
-												}
-											}
-											else if ((!mailIdCandidate || !maillistIdCandidate || !datasetIdCandidate) && (attachment.contentType && attachment.contentType === "text/rfc822-headers")) {
-												var content = attachment.content.toString();
-												contents += content;
-												var indexOfMessageId = content.indexOf("Message-Id");
-												if (indexOfMessageId < 0) indexOfMessageId = content.indexOf("message-id");
-												if (indexOfMessageId < 0) indexOfMessageId = content.indexOf("MessageId");
-												if (indexOfMessageId < 0) indexOfMessageId = content.indexOf("messageid");
-												if (indexOfMessageId >= 0) {
-													content = content.substr(indexOfMessageId).split(">")[0].trim();
-													content = content.split("<").pop().trim();
-
-													var indexOfAt = content ? content.indexOf("@") : -1;
-													if (indexOfAt >= 0) {
-														var ids = content.substr(0, indexOfAt).split(".");
-														mailIdCandidate = ids[0].replace(/[^a-z0-9]/gi, "");
-														maillistIdCandidate = ids[1].replace(/[^a-z0-9]/gi, "");
-														datasetIdCandidate = ids[2].replace(/[^a-z0-9]/gi, "");
-
-														if (!mailIdCandidate || mailIdCandidate.length <= 0) mailIdCandidate = undefined;
-														if (!maillistIdCandidate || maillistIdCandidate.length <= 0) maillistIdCandidate = undefined;
-														if (!datasetIdCandidate || datasetIdCandidate.length <= 0) datasetIdCandidate = undefined;
-													}
-												}
-											}
-										}
-									}
-
-									processingFinishedCount++;
-
-									db.MailModel.findOne({ "dataset": datasetid, "_id": mailIdCandidate }, function (err, originalMail) {
-										if (err) {
-											logger.error(err);
-										}
-
-										if (!originalMail) {
-											logger.log("no originalMail!");
-											return checkForReturn();
-										}
-
-										originalMail.bounced = mail.deliveryFailed;
-										originalMail.save(function(err) {
-											if (err) {
-												logger.error(err);
-											}
-										});
-
-										db.MailModel.findOne({ "dataset": datasetid, "externalId": "" + (msg.attributes && msg.attributes.uid ? msg.attributes.uid : seqno) }, function (err, oldResponse) {
-											if (err) {
-												logger.error(err);
-											}
-
-											var response = oldResponse ? oldResponse : new db.MailModel();
-
-											response.from = mail.from[0].address;
-											response.to = mail.to[0].address;
-											response.subject = mail.subject;
-											response.received = mail.date;
-											response.dataset = datasetid;
-											response.body = contents;
-											response.externalId = msg.attributes && msg.attributes.uid ? msg.attributes.uid : seqno;
-											response.inMailingList = maillistIdCandidate;
-
-											response.save(function(err) {
-												if (err) {
-													logger.error(err);
-												}
-
-												db.MailingListModel.findOne({ "dataset": datasetid, "_id": maillistIdCandidate }, function(err, mailingList) {
-													if (err) {
-														logger.error(err);
-													}
-
-													if (!mailingList) {
-														logger.log("no mailing list");
-														return;
-													}
-
-													if (!mailingList.answers) mailingList.answers = [];
-													var found = false;
-													for (var k = 0; k < mailingList.answers.length; k++) {
-														if (mailingList.answers[k] + "" == response._id + "") {
-															found = true;
-															break;
-														}
-													}
-
-													if (!found) {
-														mailingList.answers.push(response._id);
-														mailingList.save(function(err) {
-															if (err) {
-																logger.error(err);
-															}
-														});
-													}
-												});
-
-												if (originalMail) {
-													response.person = originalMail.person;
-													response.responseTo = originalMail._id;
-
-													response.save(function(err) {
-														if (err) {
-															logger.error(err);
-														}
-
-														return checkForReturn();
-													});
-
-													db.PersonModel.findOne({ "dataset": datasetid, "active": true, "_id": originalMail.person }, function(err, person) {
-														if (err) {
-															logger.error(err);
-														}
-
-														if (!person || !person.mailAddresses) {
-															return;
-														}
-
-														for (var i = 0; i < person.mailAddresses.length; i++) {
-															if (person.mailAddresses[i].address === mail.from[0].address) {
-																person.mailAddresses[i].state = mail.deliveryFailed === true ? 3 : 2;
-																break;
-															}
-														}
-
-														person.save(function(err) {
-															if (err) {
-																logger.error(err);
-															}
-														});
-													});
-												}
-												else {
-													db.PersonModel.find({ "dataset": datasetid, "active": true, "mailAddresses.address": mail.from[0].address }, function(err, persons) {
-														if (err) {
-															logger.error(err);
-														}
-
-														if (!persons) {
-															return;
-														}
-
-														for (var j = 0; j < persons.length; j++) {
-															var person = persons[j];
-															if (!person || !person.mailAddresses) {
-																continue;
-															}
-
-															for (var i = 0; i < person.mailAddresses.length; i++) {
-																if (person.mailAddresses[i].address === mail.from.address) {
-																	person.mailAddresses[i].state = mail.deliveryFailed === true ? 3 : 2;
-
-																	response.person = person._id;
-																	response.save(function(err) {
-																		if (err) {
-																			logger.error(err);
-																		}
-																	});
-
-																	break;
-																}
-															}
-
-															person.save(function(err) {
-																if (err) {
-																	logger.error(err);
-																}
-															});
-														}
-													});
-
-													return checkForReturn();
-												}
-											});
-										});
-									});
+									mailsToProcess.push({ mail: mail, msg: msg });
 								});
 
 								stream.pipe(mailparser);
@@ -964,9 +993,7 @@ module.exports = function(db) {
 							});
 							
 							msg.once('end', function() {
-								logger.log(prefix + 'Finished');
-								parsingFinishedCount++;
-								return checkForReturn();
+								
 							});
 						});
 						
@@ -976,9 +1003,28 @@ module.exports = function(db) {
 						});
 
 						f.once('end', function() {
-							logger.log('Done fetching all messages!');
-							allMailsReceived = true;
-							return checkForReturn();
+							var mailCount = mailsToProcess.length;
+							logger.log('Done fetching ' + mailCount + ' messages!');
+
+							var counter = 0;
+							async.eachSeries(mailsToProcess, function(mailAndMsg, callback) {
+								logger.log("processed " + counter + " / " + mailCount);
+								processMail(mailAndMsg.mail, mailAndMsg.msg, callback);
+								counter++;
+							}, function(err) {
+								try { imap.end(); }
+								catch (e) { logger.error(e); }
+
+								var elapsed = process.hrtime(start)[1] / 1000000; // divide by a million to get nano to milli
+								logger.log("mails fetched and processsed in " + (elapsed / 1000).toFixed(2) + "s");
+
+								if (err) {
+									logger.error(err);
+									return res.send(500);
+								}
+
+								return res.send(200);
+							});
 						});
 					});
 				});

@@ -65,7 +65,7 @@
     </td>
     <td colspan="8">
       <div class="accordion-heading">
-        <a class="accordion-toggle btn btn-default btn-sm" data-toggle="collapse" href="#collapse-<%= model[j]._id %>">Mail anzeigen / verstecken</a>
+        <a class="accordion-toggle btn btn-default btn-sm" data-toggle="collapse" href="#collapse-<%= model[j]._id %>">Mail anzeigen / verstecken</a> <h5 style="display:inline-block; font-weight: normal; padding-left: 1em;"><span class="label label-primary" style="font-weight: normal;"><%= model[j].to %></span></h5>
       </div>
       <div id="collapse-<%= model[j]._id %>" class="accordion-body collapse">
         <span data-field="subject" data-mailid="<%= model[j]._id %>"><%= model[j].subject %></span>
