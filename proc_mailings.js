@@ -62,8 +62,6 @@ if (!sender.smtp.quota) sender.smtp.quota = {};
 sender.smtp.quota.numberOfMails = options.sender.smtp.quota.numberOfMails || sender.smtp.quota.numberOfMails;
 sender.smtp.quota.perTimeFrame = options.sender.smtp.quota.perTimeFrame || sender.smtp.quota.perTimeFrame;
 
-logger.log(sender);
-
 var smtpServer;
 var mailsSent = 0;
 var mailsFinished = 0;
@@ -81,7 +79,6 @@ function connectToSmtpServer() {
 		tls: sender.smtp.tls,
 		port: sender.smtp.port
 	});
-	logger.log(smtpServer);
 }
 
 function processMailings() {
@@ -101,119 +98,133 @@ function processMailings() {
 			return;
 		}
 
-		logger.log("Mailing List has " + mailingList.sendTo.length + " receivers (persons)");
+		logger.log("Mailing List has " + mailingList.sendTo.length + " receivers (persons) and " + mailingList.preparedMails.length + " unsent mails");
 		async.eachSeries(mailingList.preparedMails, function (mail, callback) {
 			logger.log("Processing Mail to " + mail.to);
-			var message = {
-				text: mail.body.replace(/<br\s*[\/]?>/gi, "\n").replace(/<\/?[^>]+(>|$)/g, ""), 
-				from: mail.from,
-				"reply-to": mail.from,
-				to: mail.to,
-				subject: mail.subject,
-				"message-id": "<" + mail._id + "." + mailingListId + "." + datasetId + "@" + os.hostname() +">", 
-				attachment: [
-					{ 
-						data: mail.body, 
-						alternative: true 
-					}
-				]
-			};
 
-			if (smtpServer) {
-				mailsSent++;
+			MailModel.count({ dataset: datasetId, to: mail.to, sent: { "$ne": null } }, function(err, countMailsToSameReceipient) {
+				if (err) {
+					logger.error(err);
+					return callback();
+				}
 
-				if (startingSendMails <= 0) startingSendMails = new Date().getTime();
-				smtpServer.send(message, function(err, message) {
-					try {
-						if (err) {
-							mailsFinished++;
-							logger.error(err);
-							return callback();
+				logger.info("query: " + JSON.stringify({ dataset: datasetId, to: mail.to, sent: { "$ne": null } }));
+				if (countMailsToSameReceipient > 0) {
+					logger.error("already sent mail to " + mail.to);
+					return callback();
+				}
+			
+				var message = {
+					text: mail.body.replace(/<br\s*[\/]?>/gi, "\n").replace(/<\/?[^>]+(>|$)/g, ""), 
+					from: mail.from,
+					"reply-to": mail.from,
+					to: mail.to,
+					subject: mail.subject,
+					"message-id": "<" + mail._id + "." + mailingListId + "." + datasetId + "@" + os.hostname() +">", 
+					attachment: [
+						{ 
+							data: mail.body, 
+							alternative: true 
 						}
-						else {
-							mail.sent = Date.now();
-							mail.save(function(err) {
-								if (err) {
-									logger.error(err);
-								}
+					]
+				};
 
-								if (!mailingList.sentMails) mailingList.sentMails = [];
-								mailingList.sentMails.push(mail._id);
-								mailingList.preparedMails.remove(mail._id);
+				if (smtpServer) {
+					mailsSent++;
 
-								mailingList.save(function(err) {
+					if (startingSendMails <= 0) startingSendMails = new Date().getTime();
+					smtpServer.send(message, function(err, message) {
+						try {
+							if (err) {
+								mailsFinished++;
+								logger.error(err);
+								return callback();
+							}
+							else {
+								mail.sent = Date.now();
+								mail.save(function(err) {
 									if (err) {
 										logger.error(err);
 									}
 
-									mail.populate("person", "-__v -raw", function(err, mail) {
-										var addressFound = false;
-										for (var i = 0; i < mail.person.mailAddresses.length; i++) {
-											if (mail.person.mailAddresses[i].address === mail.to) {
-												if (mail.person.mailAddresses[i].state === 0) {
-													addressFound = true;
-													mail.person.mailAddresses[i].state = 1;
-													mail.person.save(function(err) {
-														if (err) {
-															logger.error(err);
-														}
+									if (!mailingList.sentMails) mailingList.sentMails = [];
+									mailingList.sentMails.push(mail._id);
+									mailingList.preparedMails.remove(mail._id);
 
-														mailsFinished++;
+									mailingList.save(function(err) {
+										if (err) {
+											logger.error(err);
+										}
 
-														if (mailsFinished >= mailsSent && currentlySleeping === false && checkingForMails === false) {
-															logger.log("97: finished: " + mailsFinished + " sleeping: " + currentlySleeping);
-															process.exit();
-														}
-													});
+										mail.populate("person", "-__v -raw", function(err, mail) {
+											var addressFound = false;
+											for (var i = 0; i < mail.person.mailAddresses.length; i++) {
+												if (mail.person.mailAddresses[i].address === mail.to) {
+													if (mail.person.mailAddresses[i].state === 0) {
+														addressFound = true;
+														mail.person.mailAddresses[i].state = 1;
+														mail.person.save(function(err) {
+															if (err) {
+																logger.error(err);
+															}
+
+															mailsFinished++;
+
+															if (mailsFinished >= mailsSent && currentlySleeping === false && checkingForMails === false) {
+																logger.log("97: finished: " + mailsFinished + " sleeping: " + currentlySleeping);
+																process.exit();
+															}
+														});
+													}
+
+													break;
 												}
-
-												break;
 											}
-										}
 
-										if (!addressFound) {
-											mailsFinished++;
+											if (!addressFound) {
+												mailsFinished++;
 
-											if (mailsFinished >= mailsSent && currentlySleeping === false && checkingForMails === false) {
-												logger.log("98: finished: " + mailsFinished + " sleeping: " + currentlySleeping);
-												process.exit();
+												if (mailsFinished >= mailsSent && currentlySleeping === false && checkingForMails === false) {
+													logger.log("98: finished: " + mailsFinished + " sleeping: " + currentlySleeping);
+													process.exit();
+												}
 											}
-										}
+										});
 									});
-								});
 
-								logger.log("Timeout? (" + mailsSent + " / " + sender.smtp.quota.numberOfMails + " | " + sender.smtp.quota.perTimeFrame + ")");
-								if (sender.smtp.quota && sender.smtp.quota.numberOfMails && sender.smtp.quota.perTimeFrame && !isNaN(sender.smtp.quota.perTimeFrame) && !isNaN(sender.smtp.quota.numberOfMails) && sender.smtp.quota.numberOfMails > 0 && mailsSent >= sender.smtp.quota.numberOfMails) {
-									var resumingAllowed = startingSendMails + sender.smtp.quota.perTimeFrame * 1000 + 2000;
-									var timeToSleep = Math.max(resumingAllowed - new Date().getTime(), 2000);
-									if (timeToSleep < 2000) timeToSleep = sender.smtp.quota.perTimeFrame * 1000;
-									logger.log("time to sleep: " + timeToSleep)
+									logger.log("Timeout? (" + mailsSent + " / " + sender.smtp.quota.numberOfMails + " | " + sender.smtp.quota.perTimeFrame + ")");
+									if (sender.smtp.quota && sender.smtp.quota.numberOfMails && sender.smtp.quota.perTimeFrame && !isNaN(sender.smtp.quota.perTimeFrame) && !isNaN(sender.smtp.quota.numberOfMails) && sender.smtp.quota.numberOfMails > 0 && mailsSent >= sender.smtp.quota.numberOfMails) {
+										var resumingAllowed = startingSendMails + sender.smtp.quota.perTimeFrame * 1000 + 2000;
+										var timeToSleep = Math.max(resumingAllowed - new Date().getTime(), 2000);
+										if (timeToSleep < 2000) timeToSleep = sender.smtp.quota.perTimeFrame * 1000;
+										logger.log("time to sleep: " + timeToSleep)
 
-									currentlySleeping = true;
+										currentlySleeping = true;
 
-									return setTimeout(function() {
-										checkingForMails = true;
-										mailsSent = 0;
-										startingSendMails = 0;
+										return setTimeout(function() {
+											checkingForMails = true;
+											mailsSent = 0;
+											startingSendMails = 0;
+											callback();
+											currentlySleeping = false;
+										}, timeToSleep);
+									}
+									else {
 										callback();
-										currentlySleeping = false;
-									}, timeToSleep);
-								}
-								else {
-									callback();
-								}
-							});
+									}
+								});
+							}
 						}
-					}
-					catch (e) {
-						logger.error(e);
-						callback();
-					}
-				});
-			}
-			else {
-				callback();
-			}
+						catch (e) {
+							logger.error(e);
+							callback();
+						}
+					});
+				}
+				else {
+					callback();
+				}
+			});
 		}, function (err) {
 			if (err) {
 				logger.error(err);
