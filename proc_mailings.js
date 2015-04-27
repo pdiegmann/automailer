@@ -108,7 +108,6 @@ function processMailings() {
 					return callback();
 				}
 
-				logger.info("query: " + JSON.stringify({ dataset: datasetId, to: mail.to, sent: { "$ne": null } }));
 				if (countMailsToSameReceipient > 0) {
 					logger.error("already sent mail to " + mail.to);
 					return callback();
