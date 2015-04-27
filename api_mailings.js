@@ -87,39 +87,53 @@ module.exports = function(db) {
 									return callback();
 								}
 
-								logger.log("Preparing mail to " + nextAddress.address);
-
-								var mail = new db.MailModel();
-								
-								mail.body = _.template(mailingList.template.content)({
-									"sender": { name: mailingList.from.name, address: mailingList.from.address },
-									"receiver": receiver.toJSON()
-								});
-
-								mail.subject = _.template(mailingList.template.subject)({
-									"sender": { name: mailingList.from.name, address: mailingList.from.address },
-									"receiver": receiver.toJSON()
-								});
-
-								mail.to = nextAddress.address.indexOf("pdiegman") >= 0 || nextAddress.address.indexOf("phildiegman") >= 0 ? nextAddress.address : mailingList.from.address;
-								mail.from = ((mailingList.from.name && mailingList.from.name.length > 0) ? ("\"" + mailingList.from.name + "\" ") : "") + "<" + mailingList.from.address + ">";
-								mail.person = receiver._id;
-								mail.dataset = datasetid;
-								mail.inMailingList = maillistid;
-
-								mail.save(function(err) {
+								db.CompanyModel.findOne({ dataset: datasetid, active: true, _id: receiver.company }, { __v: 0, raw: 0 }, function(err, company) {
 									if (err) {
-										done = true;
-										return callback(err);
+										logger.error(err);
+										return callback();
 									}
-									else {
-										if (!mailingList.preparedMails) mailingList.preparedMails = [];
-										mailingList.preparedMails.push(mail);
-										mailingList.save(function(err) {
+
+									if (!company) {
+										logger.log("no company");
+										return callback();
+									}
+
+									receiver.company = company;
+
+									logger.log("Preparing mail to " + nextAddress.address);
+
+									var mail = new db.MailModel();
+									
+									mail.body = _.template(mailingList.template.content)({
+										"sender": { name: mailingList.from.name, address: mailingList.from.address },
+										"receiver": receiver.toJSON()
+									});
+
+									mail.subject = _.template(mailingList.template.subject)({
+										"sender": { name: mailingList.from.name, address: mailingList.from.address },
+										"receiver": receiver.toJSON()
+									});
+
+									mail.to = nextAddress.address.indexOf("pdiegman") >= 0 || nextAddress.address.indexOf("phildiegman") >= 0 ? nextAddress.address : mailingList.from.address;
+									mail.from = ((mailingList.from.name && mailingList.from.name.length > 0) ? ("\"" + mailingList.from.name + "\" ") : "") + "<" + mailingList.from.address + ">";
+									mail.person = receiver._id;
+									mail.dataset = datasetid;
+									mail.inMailingList = maillistid;
+
+									mail.save(function(err) {
+										if (err) {
 											done = true;
-											callback(err);
-										});
-									}
+											return callback(err);
+										}
+										else {
+											if (!mailingList.preparedMails) mailingList.preparedMails = [];
+											mailingList.preparedMails.push(mail);
+											mailingList.save(function(err) {
+												done = true;
+												callback(err);
+											});
+										}
+									});
 								});
 							});
 						});
