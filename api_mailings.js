@@ -98,6 +98,10 @@ module.exports = function(db) {
 										return callback();
 									}
 
+									if (!company.active || company.active !== true) {
+										return callback();
+									}
+
 									receiver.company = company;
 
 									logger.log("Preparing mail to " + nextAddress.address);
@@ -285,7 +289,7 @@ module.exports = function(db) {
 
 					for (var i in docs) {
 						var company = docs[i];
-						if (!company || !company.executives || company.executives.length <= 0) continue;
+						if (!company || !company.executives || company.executives.length <= 0 || !company.active || company.active !== true) continue;
 						
 						for (var k = 0; k < company.executives.length; k++) {
 							var positionsToDelete = [];
@@ -543,7 +547,7 @@ module.exports = function(db) {
 				db.CompanyModel.find(queryCompany, { "raw": 0, "__v": 0 }, function(err, docs) {
 					for (var i in docs) {
 						var company = docs[i];
-						if (!company || !company.executives || company.executives.length <= 0) continue;
+						if (!company || !company.executives || company.executives.length <= 0 || !company.active || company.active !== true) continue;
 						
 						for (var k = 0; k < company.executives.length; k++) {
 							var positionsToDelete = [];

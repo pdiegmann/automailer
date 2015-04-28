@@ -18,6 +18,11 @@ module.exports = function(db) {
 				publisherIds.push(publisherIdSegments[i].trim());
 			}
 
+			logger.log("excluding " + publisherIds.length + " companies");
+			db.CompanyModel.count({ dataset: datasetid, publisherId: {$in: publisherIds}, publisher: publisher}, function(err, count) {
+				logger.log("matches: " + count);
+			});
+
 			async.each(publisherIds, function(publisherId, callback) {
 				db.CompanyModel.findOne({ dataset: datasetid, publisherId: publisherId, publisher: publisher}, function(err, company) {
 					if (err) {
@@ -25,6 +30,7 @@ module.exports = function(db) {
 					}
 
 					if (!company) {
+						logger.info(publisherId);
 						return callback();
 					}
 

@@ -130,6 +130,8 @@ app.on('connection', function(socket) {
 /**** DATASET INITS ****/
 app.delete('/dataset/:datasetid', api_dataset.delete);
 
+app.get('/dataset/:datasetid/sanitize/publisherIds', api_dataset.sanitizePublisherIds);
+
 app.put('/dataset/:datasetid/upload', api_dataset.upload);
 
 app.get('/dataset/:datasetid/randomizeOrder', api_company.randomizeOrder);

@@ -187,6 +187,64 @@ module.exports = function(db) {
 			});
 		},
 
+		sanitizePublisherIds: function(req, res, next) {
+			var datasetid = req.params.datasetid;
+			db.CompanyModel.count({ dataset: datasetid }, function(err, count) {
+				if (err) {
+					logger.error(err);
+					return res.send(500);
+				}
+
+				logger.log("sanitizing " + count + " publisher IDs");
+
+				var processed = 0;
+				var countAlreadyClean = 0;
+				var countCleaned = 0;
+
+				async.whilst(function() { logger.log(processed + " / " + count); return processed < count; }, function(callback) {
+					db.CompanyModel.find({ dataset: datasetid })
+					.limit(1000)
+					.skip(processed)
+					.exec(function(err, companies) {
+						if (err) {
+							logger.error(err);
+							return res.send(500);
+						}
+
+						if (!companies || companies.length <= 0) {
+							return res.send(404);
+						}
+
+						async.eachLimit(companies, 3, function(company, callback) {
+							if (!company.publisherId || company.publisherId.length <= 0) return callback();
+
+							var oldPublisherId = company.publisherId + "";
+							company.publisherId = company.publisherId.replace(/[^0-9]+/g, "");
+							if (oldPublisherId === company.publisherId) {
+								countAlreadyClean++;
+								return callback();
+							}
+							else {
+								countCleaned++;
+								company.save(callback);
+							}
+						}, function(err) {
+							processed += companies.length;
+							callback(err);
+						});
+					});
+				}, function(err) {
+					logger.log("cleaned: " + countCleaned + " already clean: " + countAlreadyClean + " of a total " + count);
+					if (err) {
+						logger.error(err);
+						return res.send(500);
+					}
+
+					return res.send(200);
+				});
+			});
+		},
+
 		guessMailAddresses: function(req, res, next) {
 			var datasetid = req.params.datasetid;
 
