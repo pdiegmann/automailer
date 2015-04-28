@@ -7,12 +7,39 @@
       else { print("0"); }
   %> Adressen-->
   </h6>
-  <span><%= (model.sentMails ? model.sentMails.length : "0") %> 
-  <% if (model.from) { %> als "<%= model.from.name %>" <%= model.from.address %> <% } %>
-  gesendet.</span>
-  <span><%= (model.answers ? model.answers.length : "0") %> Antworten erhalten.</span>
+
+<div class="row">
+  <div class="col-sm-4">
+    <span><%= (model.sentMails ? model.sentMails.length : "0") %> 
+    <% if (model.from) { %> als "<%= model.from.name %>" <%= model.from.address %> <% } %>
+    gesendet.</span>
+    <span><%= (model.answers ? model.answers.length : "0") %> Antworten erhalten.</span>
+  </div>
+
+  <div class="col-sm-3">
+    <table class="table table-condensed">
+      <thead>
+        <tr>
+          <td><i class="fa fa-exclamation-triangle"></i></td>
+          <td><i class="fa fa-check-square-o"></i></td>
+          <td><i class="fa fa-inbox"></i></td>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><%= (model.bouncedCount ? model.bouncedCount : "0") %></td>
+          <td><%= (model.notBouncedCount ? model.notBouncedCount : "0") %></td>
+          <td><%= (model.answers ? model.answers.length : "0") %></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="row">
   <nav><ul class="pagination"></ul></nav>
   <table class="table results">
   </table>
   <nav><ul class="pagination"></ul></nav>
+</div>
 <% } %>

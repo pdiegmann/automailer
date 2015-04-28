@@ -6,6 +6,7 @@ define(['models/MailList'], function(MailList) {
           return resp.results ? resp.results : resp;
         },
 	    parseState: function (resp, queryParams, state, options) {
+	    	console.log(resp);
 	      if (resp.results && resp.duration && !isNaN(resp.duration)) this.duration = resp.duration;
           return { totalRecords: resp.total };
         },

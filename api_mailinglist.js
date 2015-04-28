@@ -142,36 +142,61 @@ module.exports = function(db) {
 					var preparedMails = new Array(doc.preparedMails.length);
 					var i = 0;
 
-					async.each(doc.preparedMails, function(preparedMail, callback) {
-						db.PersonModel.findOne({ dataset: datasetid, "_id": preparedMail.person }, { "__v": 0, "raw": 0 })
-						.populate("company", "-__v -raw")
-						.exec(function(err, person) {
-							if (err) {
-								return callback(err);
-							}
-
-							if (!person) {
-								return callback();
-							}
-
-							preparedMail.person = person;
-							preparedMails[i] = preparedMail;
-							i++;
-
-							callback();
-						});
-					}, function(err) {
+					db.MailModel.aggregate([{ $match : { "_id": { $in: doc.sentMails } } },
+					{ $project: { bounced: { $eq: ["$bounced", true] } } },
+					{ $group : { _id: "$bounced", count: { $sum: 1 } } }], function(err, bouncedNotBounced) {
 						if (err) {
 							logger.error(err);
 							return res.send(500);
 						}
 
-						doc.preparedMails = undefined;
+						if (!bouncedNotBounced) {
+							return res.send(500);
+						}
 
-						var elapsed = process.hrtime(start)[1] / 1000000; // divide by a million to get nano to milli
-						return res.json({ duration: parseFloat(Math.round(elapsed).toFixed(0)), take: take, skip: skip, count: preparedMails.length, total: count, results: preparedMails, mailingList: doc });
-						//return res.json(doc);
-					})
+						logger.error("a: " + bouncedNotBounced);
+
+						for (var i = 0; i < bouncedNotBounced.length; i++) {
+							if (bouncedNotBounced[i]._id === true) {
+								doc.bouncedCount = bouncedNotBounced[i].count;
+							}
+							else if (bouncedNotBounced[i]._id === true) {
+								doc.notBouncedCount = bouncedNotBounced[i].count;
+							}
+						}
+					
+
+						async.each(doc.preparedMails, function(preparedMail, callback) {
+							db.PersonModel.findOne({ dataset: datasetid, "_id": preparedMail.person }, { "__v": 0, "raw": 0 })
+							.populate("company", "-__v -raw")
+							.exec(function(err, person) {
+								if (err) {
+									return callback(err);
+								}
+
+								if (!person) {
+									return callback();
+								}
+
+								preparedMail.person = person;
+								preparedMails[i] = preparedMail;
+								i++;
+
+								callback();
+							});
+						}, function(err) {
+							if (err) {
+								logger.error(err);
+								return res.send(500);
+							}
+
+							doc.preparedMails = undefined;
+
+							var elapsed = process.hrtime(start)[1] / 1000000; // divide by a million to get nano to milli
+							return res.json({ duration: parseFloat(Math.round(elapsed).toFixed(0)), take: take, skip: skip, count: preparedMails.length, total: count, results: preparedMails, mailingList: doc });
+							//return res.json(doc);
+						})
+					});
 				});
 			});
 		},
@@ -348,8 +373,46 @@ module.exports = function(db) {
 					});
 					*/
 
-					var elapsed = process.hrtime(start)[1] / 1000000; // divide by a million to get nano to milli
-					return res.json({ duration: parseFloat(Math.round(elapsed).toFixed(0)), take: take, skip: skip, count: docs.length, total: count, results: docs});
+					async.each(docs, function(doc, callback) {
+						db.MailModel.aggregate([
+							{ $match : { "_id": { $in: doc.sentMails } } },
+							{ $project: { bounced: { $eq: ["$bounced", true] } } },
+							{ $group : { _id: "$bounced", count: { $sum: 1 } } }], 
+							function(err, bouncedNotBounced) {
+							if (err) {
+								return callback(err);
+							}
+
+							if (!bouncedNotBounced) {
+								return callback();
+							}
+
+							for (var i = 0; i < bouncedNotBounced.length; i++) {
+								if (bouncedNotBounced[i]._id === true) {
+									doc["bouncedCount"] = bouncedNotBounced[i].count;
+								}
+								else if (bouncedNotBounced[i]._id === false) {
+									doc["notBouncedCount"] = bouncedNotBounced[i].count;
+								}
+							}
+
+							callback();
+						});
+					}, function(err) {
+						if (err) {
+							logger.error(err);
+						}
+
+						var results = [];
+						for (var i = 0; i < docs.length; i++) {
+							results.push(docs[i].toObject());
+							results[i].bouncedCount = docs[i].bouncedCount;
+							results[i].notBouncedCount = docs[i].notBouncedCount;
+						}
+
+						var elapsed = process.hrtime(start)[1] / 1000000; // divide by a million to get nano to milli
+						return res.json({ duration: parseFloat(Math.round(elapsed).toFixed(0)), take: take, skip: skip, count: results.length, total: count, results: results });
+					});
 				});
 			});
 		}

@@ -43,6 +43,8 @@ define(["Underscore", "text!templates/maillists.html", "text!templates/mailLists
 			if (!collection)
 				collection = this.collection;
 
+			console.log(collection);
+
 			var t = _.template(maillistsListShortTemplate, {
                 "model": collection.toJSON(),
                 "state": collection.state

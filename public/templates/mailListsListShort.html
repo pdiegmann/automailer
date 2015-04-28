@@ -4,10 +4,19 @@
 			<th></th>
 			<th>Erstellt</th>
 			<th>Empfänger</th>
-			<th>Gesendet</th>
-			<th>Ausstehend</th>
-			<th>Antworten</th>
 			<th></th>
+			<th></th>
+			<th><i class="fa fa-paper-plane"></i></th>
+			<th><i class="fa fa-cloud-upload"></i></th>
+			<th>
+				<i class="fa fa-exclamation-triangle"></i>
+			</th>
+			<th>
+          		<i class="fa fa-check-square-o"></i>
+          	</th>
+			<th>
+          		<i class="fa fa-inbox"></i>
+			</th>
 		</tr>
 	</thead>
 	<tbody>
@@ -22,17 +31,30 @@
 			<td>
 				<%= (model[i].sendTo ? model[i].sendTo.length : "0") %>	Personen / 
 				<%= (model[i].preparedMails && model[i].sentMails ? (model[i].preparedMails.length + model[i].sentMails.length) : "0") %> Adressen
+			</td>
+			<td>
 				<a class="btn btn-warning stockUp" data-maillistid="<%= model[i]._id %>">E-Mails aufstocken</a>
+			</td>
+			<td>
+			<% if (model[i].preparedMails && model[i].preparedMails.length > 0) { %> 
+				<a class="btn btn-warning sendUnsent" data-maillistid="<%= model[i]._id %>"><span class="badge"><%= model[i].preparedMails.length %></span> Nachsenden</a>
+			<% } %>
 			</td>
 			<td>
 				<%= (model[i].sentMails ? model[i].sentMails.length : "0") %>
 			</td>
 			<td>
 				<% if (model[i].preparedMails && model[i].preparedMails.length > 0) { %> 
-					<a class="btn btn-warning sendUnsent" data-maillistid="<%= model[i]._id %>"><span class="badge"><%= model[i].preparedMails.length %></span> Nachsenden</a>
+					<%= model[i].preparedMails.length %>
 				<% } else { %>
 					0
 				<% } %>
+			</td>
+			<td>
+				<%= (model[i].bouncedCount ? model[i].bouncedCount : "0") %>
+			</td>
+			<td>
+				<%= (model[i].notBouncedCount ? model[i].notBouncedCount : "0") %>
 			</td>
 			<td>
 				<%= (model[i].answers ? model[i].answers.length : "0") %>
