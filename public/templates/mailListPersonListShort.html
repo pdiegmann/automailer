@@ -1,0 +1,76 @@
+<% if (model && model.length > 0) { %>
+<thead>
+  <tr>
+    <th></th>
+    <th>Nachname</th>
+    <th>Vorname</th>
+    <th>m/w</th>
+    <th>Titel</th>
+    <th>Abteilung</th>
+    <th>Position</th>
+    <th>Mail-Adressen</th>
+    <th>Unternehmen</th>
+    <th>Telefon</th>
+  </tr>
+</thead>
+<tbody>
+<% for (var j in model) { %>
+  <% if (!model[j]) { console.log(j + ": no person"); continue; } %>
+  <tr class="active" data-mailid="<%= model[j]._id %>">
+    <td><%= ((state.currentPage - state.firstPage) * state.pageSize + parseInt(j) + 1) %></td> 
+    <td>
+      <span data-field="lastName" data-mailid="<%= model[j]._id %>"><%= model[j].lastName %></span>
+      <input style="display: none;" type="text" name="lastName" data-field="lastName" data-mailid="<%= model[j]._id %>" value="<%= model[j].lastName %>"/>
+    </td>
+    <td>
+      <span data-field="firstName" data-mailid="<%= model[j]._id %>"><%= model[j].firstName %></span>
+      <input style="display: none;" type="text" name="firstName" data-field="firstName" data-mailid="<%= model[j]._id %>" value="<%= model[j].firstName %>"/>
+    </td>
+    <td>
+      <span data-field="gender" data-mailid="<%= model[j]._id %>"><% (model[j].gender === 0 ? print("w") : (model[j].gender === 1 ? print("m") : print(""))) %></span>
+
+      <select class="form-control" style="display: none;" name="gender" data-field="gender" data-mailid="<%= model[j]._id %>">
+        <option value="0" <% model[j].gender === 0 ? print("selected") : print("") %>>w</option>
+        <option value="1" <% model[j].gender === 1 ? print("selected") : print("") %>>m</option>
+      </select>
+    </td>
+    <td>
+      <span data-field="title" data-mailid="<%= model[j]._id %>"><%= model[j].title %></span>
+      <input style="display: none; width: 75px;" type="text" name="title" data-field="title" data-mailid="<%= model[j]._id %>" value="<%= model[j].title %>"/>
+    </td>
+    <td>
+      <span data-field="departement" data-mailid="<%= model[j]._id %>"><%= model[j].departement %></span>
+      <input style="display: none;" type="text" name="departement" data-field="departement" data-mailid="<%= model[j]._id %>" value="<%= model[j].departement %>"/>
+    </td>
+    <td>
+      <span data-field="position" data-mailid="<%= model[j]._id %>"><%= model[j].position %></span>
+      <input style="display: none;" type="text" name="position" data-field="position" data-mailid="<%= model[j]._id %>" value="<%= model[j].position %>"/>
+    </td>
+    <td>
+      <% if (model[j].mailAddresses && model[j].mailAddresses.length > 0) { %>
+        <ul style="list-style-type: none;">
+          <% for (var k = 0; k < model[j].mailAddresses.length; k++) { %>
+            <li style="margin-left:-3em;">
+              <span class="<% model[j].mailAddresses[k].state == 3 ? print("text-danger") : (model[j].mailAddresses[k].state == 2 ? print("text-success") : "") %>"><%= model[j].mailAddresses[k].address %></span>
+              <br/>
+              <a class="btn btn-default btn-sm" data-toggle="tooltip" title="Direkte Mail senden" href="mailto:<%= model[j].mailAddresses[k].address %>"><i class="fa fa-envelope"></i></a>
+
+              <a style="margin-left: 1.0em;" data-toggle="tooltip" title="Ungetestete Mail" class="btn btn-default btn-sm <% model[j].mailAddresses[k].state == 0 ? print("disabled") : print("") %> setmailaddressstate" data-addressid="<%= model[j].mailAddresses[k]._id %>" data-state="0"><i class="fa fa-archive"></i></a>
+              <a data-toggle="tooltip" title="Unbeantwortete Mail" class="btn btn-primary btn-sm <% model[j].mailAddresses[k].state == 1 ? print("disabled") : print("") %> setmailaddressstate" data-addressid="<%= model[j].mailAddresses[k]._id %>" data-state="1"><i class="fa fa-send"></i></a>
+              <a data-toggle="tooltip" title="Erfolgreiche Mail" class="btn btn-success btn-sm <% model[j].mailAddresses[k].state == 2 ? print("disabled") : print("") %> setmailaddressstate" data-addressid="<%= model[j].mailAddresses[k]._id %>" data-state="2"><i class="fa fa-check"></i></a>
+              <a data-toggle="tooltip" title="Fehlgeschlagene Mail" class="btn btn-danger btn-sm <% model[j].mailAddresses[k].state == 3 ? print("disabled") : print("") %> setmailaddressstate" data-addressid="<%= model[j].mailAddresses[k]._id %>" data-state="3"><i class="fa fa-warning"></i></a>
+            </li>
+          <% } %>
+        </ul>
+        <% } %>
+    </td>
+    <td>
+      <%= (model[j].company ? model[j].company.name : "") %>
+    </td>
+    <td>
+      <%= (model[j].company ? model[j].company.telephone : "") %>
+    </td>
+  </tr>
+<% } %>
+</tbody>
+<% } %>

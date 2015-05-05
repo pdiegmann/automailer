@@ -1,5 +1,5 @@
-define(["views/index", "views/uploadCSV", "views/search", "views/mailtemplates", "views/mailtemplate", "views/mails", "views/maillists", "views/maillist", "views/other", "views/notFound", "views/oops", "models/Company", "models/CompanyCollection", "models/MailTemplate", "models/MailTemplateCollection", "models/MailList", "models/MailListItemCollection"], 
-	function(IndexView, UploadCSVView, SearchView, MailTemplatesView, MailTemplateView, MailsView, MailListsView, MailListView, OtherView, NotFoundView, OopsView, Company, CompanyCollection, MailTemplate, MailTemplateCollection, MailList, MailListItemCollection) {
+define(["views/index", "views/uploadCSV", "views/search", "views/mailtemplates", "views/mailtemplate", "views/mails", "views/maillists", "views/maillist", "views/maillistPersons", "views/other", "views/notFound", "views/oops", "models/Company", "models/CompanyCollection", "models/MailTemplate", "models/MailTemplateCollection", "models/MailList", "models/MailListItemCollection", "models/MailListPersonCollection"], 
+	function(IndexView, UploadCSVView, SearchView, MailTemplatesView, MailTemplateView, MailsView, MailListsView, MailListView, MaillistPersonsView, OtherView, NotFoundView, OopsView, Company, CompanyCollection, MailTemplate, MailTemplateCollection, MailList, MailListItemCollection, MailListPersonCollection) {
 	var Router = Backbone.Router.extend({
 		currentView: null,
 		initialize: function() {
@@ -17,6 +17,8 @@ define(["views/index", "views/uploadCSV", "views/search", "views/mailtemplates",
 			"!/mail/template/:id": "mailTemplate",
 			"!/mail/templates": "mailTemplates",
 			"!/mail/lists": "mailLists",
+			"!/mail/list/:id/persons": "maillistPersons",
+			"!/mail/list/:id/persons/failed": "maillistFailedPersons",
 			"!/mail/list/:id": "mailList",
 			"!/mail": "automail",
 			"!/other": "other",
@@ -65,6 +67,21 @@ define(["views/index", "views/uploadCSV", "views/search", "views/mailtemplates",
 			model.fetch({success: function (model) {
 				//view.render(model);
 			}});
+		},
+		maillistPersons: function(maillistid) {
+			var model = new MailListPersonCollection();
+			model.updateUrl($('#dataset-selector').val(), maillistid);
+			var view = new MaillistPersonsView({collection:model});
+			this.changeView(view);
+			/*model.fetch({success: function (model) {
+				//view.render(model);
+			}});*/
+		},
+		maillistFailedPersons: function(maillistid) {
+			var model = new MailListPersonCollection();
+			model.updateUrl($('#dataset-selector').val(), maillistid, true);
+			var view = new MaillistPersonsView({collection:model});
+			this.changeView(view);
 		},
 		mailTemplates: function() {
 			activateMenuItem('nav_mailtemplates');

@@ -102,6 +102,163 @@ module.exports = function(db) {
 			});
 		},
 
+		getPersonsAddressed: function(req, res, next) {
+			var start = process.hrtime();
+
+			var datasetid = req.params.datasetid;
+			var maillistid = req.params.maillistid;
+			var failedOnly = req.param("failedOnly", false);
+			if (failedOnly === "true") failedOnly = true;
+
+			var take = req.param("take", 0);
+			if (isNaN(take) || take <= 0 || take > 500) take = 500;
+			take = parseInt(take);
+			var skip = req.param("skip", 0);
+			if (isNaN(skip) || skip < 0) skip = 0;
+			skip = parseInt(skip);
+
+			db.MailingListModel
+			.aggregate([
+				{ $match: { _id: new mongoose.Types.ObjectId(maillistid), dataset: new mongoose.Types.ObjectId(datasetid) } }, 
+				{ $project: { count: { $size: "$sendTo" } } }
+			], function (err, aggregation) {
+				if (err) {
+					logger.error(err);
+				}
+				var count = 0;
+				if (aggregation && aggregation.length > 0 && aggregation[0].count && !isNaN(aggregation[0].count)) count = aggregation[0].count;
+				
+
+				db.MailingListModel
+				.findOne({ dataset: datasetid, _id: maillistid }, { sendTo: { $slice: [skip, take] } })
+				.populate("sendTo", "-raw -__v")
+				.exec(function (err, mailingList) {
+					if (err) {
+						logger.error(err);
+						return res.send(500);
+					}
+
+					if (!mailingList) {
+						return res.send(404);
+					}
+
+					var persons = [];
+
+					async.each(mailingList.sendTo, function(person, callback) {
+						if (failedOnly === true) {
+							for (var i = 0; i < person.mailAddresses.length; i++) {
+								if (person.mailAddresses[i].state === 1 || person.mailAddresses[i].state === 2) {
+									return callback();
+								}
+							}
+						}
+
+						persons.push(person);
+
+						db.CompanyModel.findOne({ dataset: datasetid, _id: person.company }, { raw: 0,  "__v": 0 }, function(err, company) {
+							if (company) {
+								person.company = company;
+							}
+
+							callback(err);
+						});
+					}, function(err) {
+						if (err) {
+							logger.error(err);
+							return res.send(500);
+						}
+
+						mailingList.persons = undefined;
+
+						var elapsed = process.hrtime(start)[1] / 1000000; // divide by a million to get nano to milli
+
+						return res.json({ duration: parseFloat(Math.round(elapsed).toFixed(0)), take: take, skip: skip, count: persons.length, total: failedOnly === true ? 0 : count, results: persons, mailingList: mailingList });
+					});
+				});
+			});
+		},
+
+		getPersonsAddressedFailed: function(req, res, next) {
+			var start = process.hrtime();
+
+			var datasetid = req.params.datasetid;
+			var maillistid = req.params.maillistid;
+			var failedOnly = req.param("failedOnly", false);
+			if (failedOnly === "true") failedOnly = true;
+
+			var take = req.param("take", 0);
+			if (isNaN(take) || take <= 0 || take > 500) take = 500;
+			take = parseInt(take);
+			var skip = req.param("skip", 0);
+			if (isNaN(skip) || skip < 0) skip = 0;
+			skip = parseInt(skip);
+
+			db.MailingListModel
+			.findOne({ dataset: datasetid, _id: maillistid }, function(err, mailingList) {
+				db.PersonModel
+				.aggregate([
+					{ $match: { '_id' : { $in: mailingList.sendTo } } },
+				    { $unwind: "$mailAddresses" },
+				    { $group: { 
+				        _id: '$_id', 
+				        all: { $sum: 1 },
+				        all_withMatchingStates: { $sum: { $cond: [ { $not: { $or: [{ $eq: [ '$mailAddresses.state', 1 ] }, { $lte: [ '$mailAddresses.state', 2 ] }] } }, 1, 0 ] } },
+				    } },
+				    { $project: {
+				        _id: 1,
+				        same: { $cond: [ { $eq: [ '$all', '$all_withMatchingStates' ] }, 1, 0 ] }
+				    } },
+				    { $match: { 'same' : 1 } },
+				    { $group: {
+				    	_id: null, 
+				    	total: { $sum: 1 }, 
+				    	data: { $addToSet:'$_id' } } 
+				   	}
+				])
+				.exec(function (err, aggregation) {
+					if (err) {
+						logger.error(err);
+					}
+
+					if (!aggregation || aggregation.length <= 0) {
+						return res.send(500);
+					}
+
+					aggregation = aggregation[0];
+					
+					db.PersonModel
+					.find({ dataset: datasetid, _id: { $in: aggregation.data } })
+					.skip(skip)
+					.limit(take)
+					.exec(function(err, persons) {
+						logger.log(aggregation.data.length);
+						async.each(persons, function(person, callback) {
+							db.CompanyModel.findOne({ dataset: datasetid, _id: person.company }, { raw: 0,  "__v": 0 }, function(err, company) {
+								if (company) {
+									person.company = company;
+								}
+
+								callback(err);
+							});
+						}, function(err) {
+							if (err) {
+								logger.error(err);
+								return res.send(500);
+							}
+
+							mailingList.persons = undefined;
+
+							var elapsed = process.hrtime(start)[1] / 1000000; // divide by a million to get nano to milli
+
+							logger.log({take: take, skip: skip, count: persons.length, total: aggregation.total});
+
+							return res.json({ duration: parseFloat(Math.round(elapsed).toFixed(0)), take: take, skip: skip, count: persons.length, total: aggregation.total, results: persons, mailingList: mailingList });
+						});
+					});
+				});
+			});
+		},
+
 		getMailingListItems: function(req, res, next) {
 			var start = process.hrtime();
 

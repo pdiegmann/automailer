@@ -1,0 +1,45 @@
+<% if (model) { %>
+  <h3>MailListe von <%= moment(model.created).calendar() %></h3>
+  <h6>an <%= (model.sendTo ? model.sendTo.length : "0") %>  Personen <!--/ 
+  <%  if (model.preparedMails && model.sentMails && !isNaN(model.preparedMails.length) && !isNaN(model.sentMails.length)) { print(parseInt(model.preparedMails.length) + parseInt(model.sentMails.length)); }
+      else if(model.preparedMails && !isNaN(model.preparedMails.length)) { print(model.preparedMails.length); }
+      else if(model.sentMails && !isNaN(model.sentMails.length)) { print(model.sentMails.length); }
+      else { print("0"); }
+  %> Adressen-->
+  </h6>
+
+<div class="row">
+  <div class="col-sm-4">
+    <span><%= (model.sentMails ? model.sentMails.length : "0") %> 
+    <% if (model.from) { %> als "<%= model.from.name %>" <%= model.from.address %> <% } %>
+    gesendet.</span>
+    <span><%= (model.answers ? model.answers.length : "0") %> Antworten erhalten.</span>
+  </div>
+
+  <div class="col-sm-3">
+    <table class="table table-condensed">
+      <thead>
+        <tr>
+          <td><i class="fa fa-exclamation-triangle"></i></td>
+          <td><i class="fa fa-check-square-o"></i></td>
+          <td><i class="fa fa-inbox"></i></td>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><%= (model.bouncedCount ? model.bouncedCount : "0") %></td>
+          <td><%= (model.notBouncedCount ? model.notBouncedCount : "0") %></td>
+          <td><%= (model.answers ? model.answers.length : "0") %></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="row" id="resultsrow">
+  <nav><ul class="pagination"></ul></nav>
+  <table class="table results">
+  </table>
+  <nav><ul class="pagination"></ul></nav>
+</div>
+<% } %>

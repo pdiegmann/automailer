@@ -173,6 +173,9 @@ app.get('/dataset/:datasetid/mail/list/export/:maillistid', api_mailinglists.exp
 
 app.get('/dataset/:datasetid/mail/list/:maillistid/all', api_mailinglists.getMailingList);
 
+app.get('/dataset/:datasetid/mail/list/:maillistid/persons', api_mailinglists.getPersonsAddressed);
+app.get('/dataset/:datasetid/mail/list/:maillistid/persons/failed', api_mailinglists.getPersonsAddressedFailed);
+
 app.get('/dataset/:datasetid/mail/list/:maillistid', api_mailinglists.getMailingListItems);
 
 app.post('/dataset/:datasetid/mail/list/:maillistid', api_mailinglists.setMailingList);
