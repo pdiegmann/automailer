@@ -19,6 +19,8 @@ define(["views/index", "views/uploadCSV", "views/search", "views/mailtemplates",
 			"!/mail/lists": "mailLists",
 			"!/mail/list/:id/persons": "maillistPersons",
 			"!/mail/list/:id/persons/failed": "maillistFailedPersons",
+			"!/mail/list/:id/persons/successfull": "maillistSuccessfullPersons",
+			"!/mail/list/:id/persons/inprogress": "maillistInProgressPersons",
 			"!/mail/list/:id": "mailList",
 			"!/mail": "automail",
 			"!/other": "other",
@@ -79,7 +81,19 @@ define(["views/index", "views/uploadCSV", "views/search", "views/mailtemplates",
 		},
 		maillistFailedPersons: function(maillistid) {
 			var model = new MailListPersonCollection();
-			model.updateUrl($('#dataset-selector').val(), maillistid, true);
+			model.updateUrl($('#dataset-selector').val(), maillistid, "failed");
+			var view = new MaillistPersonsView({collection:model});
+			this.changeView(view);
+		},
+		maillistSuccessfullPersons: function(maillistid) {
+			var model = new MailListPersonCollection();
+			model.updateUrl($('#dataset-selector').val(), maillistid, "successfull");
+			var view = new MaillistPersonsView({collection:model});
+			this.changeView(view);
+		},
+		maillistInProgressPersons: function(maillistid) {
+			var model = new MailListPersonCollection();
+			model.updateUrl($('#dataset-selector').val(), maillistid, "inprogress");
 			var view = new MaillistPersonsView({collection:model});
 			this.changeView(view);
 		},

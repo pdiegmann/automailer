@@ -178,13 +178,22 @@ module.exports = function(db) {
 			});
 		},
 
-		getPersonsAddressedFailed: function(req, res, next) {
+		getPersonsAddressedWithState: function(req, res, next, state, requiredForAll) {
 			var start = process.hrtime();
 
 			var datasetid = req.params.datasetid;
 			var maillistid = req.params.maillistid;
 			var failedOnly = req.param("failedOnly", false);
 			if (failedOnly === "true") failedOnly = true;
+
+			if (isNaN(state)) {
+				state = parseInt(state);
+			}
+
+			if (isNaN(state)) {
+				logger.error(state);
+				return res.send(500);
+			}
 
 			var take = req.param("take", 0);
 			if (isNaN(take) || take <= 0 || take > 500) take = 500;
@@ -195,33 +204,47 @@ module.exports = function(db) {
 
 			db.MailingListModel
 			.findOne({ dataset: datasetid, _id: maillistid }, function(err, mailingList) {
-				db.PersonModel
-				.aggregate([
+				var aggregationTasks = [
 					{ $match: { '_id' : { $in: mailingList.sendTo } } },
 				    { $unwind: "$mailAddresses" },
 				    { $group: { 
 				        _id: '$_id', 
 				        all: { $sum: 1 },
-				        all_withMatchingStates: { $sum: { $cond: [ { $not: { $or: [{ $eq: [ '$mailAddresses.state', 1 ] }, { $lte: [ '$mailAddresses.state', 2 ] }] } }, 1, 0 ] } },
+				        all_withMatchingStates: { $sum: { $cond: [ { $eq: [ '$mailAddresses.state', state ] }, 1, 0 ] } },
+				        //all_withMatchingStates: { $sum: { $cond: [ { $not: { $or: [{ $eq: [ '$mailAddresses.state', 1 ] }, { $lte: [ '$mailAddresses.state', 2 ] }] } }, 1, 0 ] } },
 				    } },
 				    { $project: {
 				        _id: 1,
-				        same: { $cond: [ { $eq: [ '$all', '$all_withMatchingStates' ] }, 1, 0 ] }
-				    } },
-				    { $match: { 'same' : 1 } },
+				        same: { $cond: [ { $eq: [ '$all', '$all_withMatchingStates' ] }, 1, 0 ] },
+				        all_withMatchingStates: '$all_withMatchingStates'
+				    } }
+				];
+
+				if (requiredForAll === true) {
+					aggregationTasks.push({ $match: { 'same' : 1 } });
+				}
+				else {
+					aggregationTasks.push({ $match: { 'all_withMatchingStates' : { $gte: 1 } } });	
+				}
+
+				aggregationTasks.push(
 				    { $group: {
 				    	_id: null, 
 				    	total: { $sum: 1 }, 
 				    	data: { $addToSet:'$_id' } } 
 				   	}
-				])
+				);
+
+				db.PersonModel
+				.aggregate(aggregationTasks)
 				.exec(function (err, aggregation) {
 					if (err) {
 						logger.error(err);
 					}
 
 					if (!aggregation || aggregation.length <= 0) {
-						return res.send(500);
+						var elapsed = process.hrtime(start)[1] / 1000000; // divide by a million to get nano to milli
+						return res.json({ duration: parseFloat(Math.round(elapsed).toFixed(0)), take: take, skip: skip, count: 0, total: 0, results: [], mailingList: mailingList });
 					}
 
 					aggregation = aggregation[0];
@@ -249,9 +272,6 @@ module.exports = function(db) {
 							mailingList.persons = undefined;
 
 							var elapsed = process.hrtime(start)[1] / 1000000; // divide by a million to get nano to milli
-
-							logger.log({take: take, skip: skip, count: persons.length, total: aggregation.total});
-
 							return res.json({ duration: parseFloat(Math.round(elapsed).toFixed(0)), take: take, skip: skip, count: persons.length, total: aggregation.total, results: persons, mailingList: mailingList });
 						});
 					});

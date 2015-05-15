@@ -6,11 +6,11 @@
     <th>Vorname</th>
     <th>m/w</th>
     <th>Titel</th>
-    <th>Abteilung</th>
+    <!--<th>Abteilung</th>-->
     <th>Position</th>
+    <th>Telefon</th>
     <th>Mail-Adressen</th>
     <th>Unternehmen</th>
-    <th>Telefon</th>
   </tr>
 </thead>
 <tbody>
@@ -38,13 +38,18 @@
       <span data-field="title" data-mailid="<%= model[j]._id %>"><%= model[j].title %></span>
       <input style="display: none; width: 75px;" type="text" name="title" data-field="title" data-mailid="<%= model[j]._id %>" value="<%= model[j].title %>"/>
     </td>
-    <td>
+    <!--<td>
       <span data-field="departement" data-mailid="<%= model[j]._id %>"><%= model[j].departement %></span>
+      <input style="display: none;" type="text" name="departement" data-field="departement" data-mailid="<%= model[j]._id %>" value="<%= model[j].departement %>"/>
+    </td>-->
+    <td>
+      <span data-field="position" data-mailid="<%= model[j]._id %>"><%= model[j].position %></span>
+      <input style="display: none;" type="text" name="position" data-field="position" data-mailid="<%= model[j]._id %>" value="<%= model[j].position %>"/> 
+      <span data-field="departement" data-mailid="<%= model[j]._id %>">(<%= model[j].departement %>)</span>
       <input style="display: none;" type="text" name="departement" data-field="departement" data-mailid="<%= model[j]._id %>" value="<%= model[j].departement %>"/>
     </td>
     <td>
-      <span data-field="position" data-mailid="<%= model[j]._id %>"><%= model[j].position %></span>
-      <input style="display: none;" type="text" name="position" data-field="position" data-mailid="<%= model[j]._id %>" value="<%= model[j].position %>"/>
+      <%= (model[j].company ? model[j].company.telephone : "") %>
     </td>
     <td>
       <% if (model[j].mailAddresses && model[j].mailAddresses.length > 0) { %>
@@ -65,10 +70,15 @@
         <% } %>
     </td>
     <td>
-      <%= (model[j].company ? model[j].company.name : "") %>
-    </td>
-    <td>
-      <%= (model[j].company ? model[j].company.telephone : "") %>
+      <% if (model[j].company) { %>
+        <% if (model[j].company.url) { %> 
+          <a href="<%= model[j].company.url %>" target="_blank"><%= model[j].company.name %></a>
+        <% } else if (model[j].company.email) { %>
+          <a href="http://<%= model[j].company.email.split('@').pop() %>" target="_blank"><%= model[j].company.name %></a>
+        <% } else { %>
+          <%= model[j].company.name %>
+        <% } %>
+      <% } %>
     </td>
   </tr>
 <% } %>

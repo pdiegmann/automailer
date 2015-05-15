@@ -21,8 +21,8 @@ define(['models/MailList'], function(MailList) {
 			pageSize: "take",
 			skip: function () { return (this.state.currentPage - this.state.firstPage) * this.state.pageSize; }
 		},
-		updateUrl: function(datasetid, maillistid, failedOnly) {
-			this.url = '/dataset/' + datasetid + '/mail/list/' + maillistid + "/persons" + (failedOnly === true ? "/failed" : "");
+		updateUrl: function(datasetid, maillistid, status) {
+			this.url = '/dataset/' + datasetid + '/mail/list/' + maillistid + "/persons" + (status ? "/" + status : "");
 	    }
 	});
 

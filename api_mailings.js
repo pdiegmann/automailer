@@ -108,12 +108,12 @@ module.exports = function(db) {
 
 									var mail = new db.MailModel();
 									
-									mail.body = _.template(mailingList.template.content)({
+									mail.body = _.template(mailingList.template.content.decodeHTML())({
 										"sender": { name: mailingList.from.name, address: mailingList.from.address },
 										"receiver": receiver.toJSON()
 									});
 
-									mail.subject = _.template(mailingList.template.subject)({
+									mail.subject = _.template(mailingList.template.subject.decodeHTML())({
 										"sender": { name: mailingList.from.name, address: mailingList.from.address },
 										"receiver": receiver.toJSON()
 									});
@@ -367,12 +367,12 @@ module.exports = function(db) {
 
 											var mail = new db.MailModel();
 											
-											mail.body = _.template(mailingList.template.content)({
+											mail.body = _.template(mailingList.template.content.decodeHTML())({
 												"sender": { name: parameters.sender.name, address: parameters.sender.address },
 												"receiver": receiver.toJSON()
 											});
 
-											mail.subject = _.template(mailingList.template.subject)({
+											mail.subject = _.template(mailingList.template.subject.decodeHTML())({
 												"sender": { name: parameters.sender.name, address: parameters.sender.address },
 												"receiver": receiver.toJSON()
 											});
@@ -684,6 +684,10 @@ module.exports = function(db) {
 			});
 
 			var processMail = function(mail, msg, callback) {
+				if (!mail) return callback();
+				if (!msg) return callback();
+				if (!mail.from) return callback();
+				if (!(mail.from instanceof Array) || mail.from.length <= 0) mail.from = [mail.from];
 				mail.deliveryFailed = false;
 				logger.log("processing from: " + mail.from[0].address);
 

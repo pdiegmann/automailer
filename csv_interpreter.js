@@ -339,20 +339,25 @@ module.exports = function(db) {
 			if (firstName && firstName.length > 0) {
 				firstNameAlternatives = [firstName, "", firstName[0]];
 
-				if (firstName.indexOf(" ") > -1) {
-					firstNameAlternatives = firstNameAlternatives.concat([
-						firstName.replace(" ", "."),
-						firstName.replace(" ", "_"),
-						//firstName.replace(" ", "-")
-					]);
+				var firstNameHasBlank = firstName.indexOf(" ") > -1;
+				var firstNameHasMinus = firstName.indexOf("-") > -1;
+
+				if (firstNameHasBlank || firstNameHasMinus) {
+					firstNameAlternatives.push(firstName.replace("-", " ").split(" ")[0]);
 				}
 
-				if (firstName.indexOf("-") > -1) {
-					firstNameAlternatives = firstNameAlternatives.concat([
-						firstName.replace("-", ""),
-						firstName.replace("-", "."),
-						firstName.replace("-", "_")
-					]);
+				if (firstNameHasBlank) {
+					firstNameAlternatives.push(firstName.replace(" ", ""));
+					firstNameAlternatives.push(firstName.replace(" ", "."));
+					firstNameAlternatives.push(firstName.replace(" ", "_"));
+					//firstNameAlternatives.push(firstName.replace(" ", "-"));
+				}
+
+				if (firstNameHasMinus) {
+					firstNameAlternatives.push(firstName.replace("-", ""));
+					firstNameAlternatives.push(firstName.replace("-", "."));
+					firstNameAlternatives.push(firstName.replace("-", "_"));
+					//firstNameAlternatives.push(firstName.replace("-", "-"));
 				}
 			}
 
@@ -360,20 +365,25 @@ module.exports = function(db) {
 			if (lastName && lastName.length > 0) {
 				lastNameAlternatives = [lastName];
 
-				if (lastName.indexOf(" ") > -1) {
-					lastNameAlternatives = lastNameAlternatives.concat([
-						lastName.replace(" ", "."),
-						lastName.replace(" ", "_"),
-						//lastName.replace(" ", "-")
-					]);
+				var lastNameHasBlank = lastName.indexOf(" ") > -1;
+				var lastNameHasMinus = lastName.indexOf("-") > -1;
+
+				if (lastNameHasBlank || lastNameHasMinus) {
+					lastNameAlternatives.push(lastName.replace("-", " ").split(" ")[0]);
+				}
+
+				if (lastNameHasBlank) {
+					lastNameAlternatives.push(lastName.replace(" ", ""));
+					lastNameAlternatives.push(lastName.replace(" ", "."));
+					lastNameAlternatives.push(lastName.replace(" ", "_"));
+					//lastNameAlternatives.push(lastName.replace(" ", "-"));
 				}
 				
-				if (lastName.indexOf("-") > -1) {
-					lastNameAlternatives = lastNameAlternatives.concat([
-						lastName.replace("-", ""),
-						lastName.replace("-", "."),
-						lastName.replace("-", "_")
-					]);
+				if (lastNameHasMinus) {
+					lastNameAlternatives.push(lastName.replace("-", ""));
+					lastNameAlternatives.push(lastName.replace("-", "."));
+					lastNameAlternatives.push(lastName.replace("-", "_"));
+					//lastNameAlternatives.push(lastName.replace("-", "-"));
 				}
 			}
 

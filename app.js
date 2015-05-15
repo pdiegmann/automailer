@@ -26,6 +26,19 @@ if (typeof String.prototype.endsWith != 'function') {
 	};
 }
 
+if (typeof String.prototype.decodeHTML != 'function') {
+	String.prototype.decodeHTML = function() {
+	    var map = {"gt":">", "lt": "<", "amp": "&", "quot": "\""};
+	    return this.replace(/&(#(?:x[0-9a-f]+|\d+)|[a-z]+);?/gi, function($0, $1) {
+	        if ($1[0] === "#") {
+	            return String.fromCharCode($1[1].toLowerCase() === "x" ? parseInt($1.substr(2), 16)  : parseInt($1.substr(1), 10));
+	        } else {
+	            return map.hasOwnProperty($1) ? map[$1] : $0;
+	        }
+	    });
+	};
+}
+
 global.shuffleArray = function(array) {
     for (var i = array.length - 1; i > 0; i--) {
         var j = Math.floor(Math.random() * (i + 1));
@@ -174,7 +187,15 @@ app.get('/dataset/:datasetid/mail/list/export/:maillistid', api_mailinglists.exp
 app.get('/dataset/:datasetid/mail/list/:maillistid/all', api_mailinglists.getMailingList);
 
 app.get('/dataset/:datasetid/mail/list/:maillistid/persons', api_mailinglists.getPersonsAddressed);
-app.get('/dataset/:datasetid/mail/list/:maillistid/persons/failed', api_mailinglists.getPersonsAddressedFailed);
+app.get('/dataset/:datasetid/mail/list/:maillistid/persons/failed', function(req, res, next) { 
+	api_mailinglists.getPersonsAddressedWithState(req, res, next, 3, true);
+});
+app.get('/dataset/:datasetid/mail/list/:maillistid/persons/inprogress', function(req, res, next) { 
+	api_mailinglists.getPersonsAddressedWithState(req, res, next, 1, false);
+});
+app.get('/dataset/:datasetid/mail/list/:maillistid/persons/successfull', function(req, res, next) { 
+	api_mailinglists.getPersonsAddressedWithState(req, res, next, 2, false);
+});
 
 app.get('/dataset/:datasetid/mail/list/:maillistid', api_mailinglists.getMailingListItems);
 
