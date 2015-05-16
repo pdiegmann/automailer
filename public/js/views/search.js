@@ -74,9 +74,13 @@ define(["Underscore", "text!templates/search.html", "text!templates/companyListS
 
 			var departementSegments = $("input[name='executive[departement]']").val() ? $("input[name='executive[departement]']").val().split(',') : [];
 			var departementNegated = false;
+			var departementCaseInsensitive = false;
 			var departementRegexStr = "";
 			for (var i in departementSegments) {
 				if (!departementSegments[i] || departementSegments[i].length <= 0) continue;
+
+				departementSegments[i] = departementSegments[i].replace("regex:", "");
+				departementCaseInsensitive = departementSegments[i].indexOf("ci:") >= 0;
 
 				if (departementSegments[i].indexOf("not:") == 0) {
 					departementSegments[i] = departementSegments[i].substr(4);
@@ -89,9 +93,13 @@ define(["Underscore", "text!templates/search.html", "text!templates/companyListS
 
 			var positionSegments = $("input[name='executive[position]']").val() ? $("input[name='executive[position]']").val().split(',') : [];
 			var positionNegated = false;
+			var positionCaseInsensitive = false;
 			var positionRegexStr = "";
 			for (var i in positionSegments) {
 				if (!positionSegments[i] || positionSegments[i].length <= 0) continue;
+
+				positionSegments[i] = positionSegments[i].replace("regex:", "");
+				positionCaseInsensitive = positionSegments[i].indexOf("ci:") >= 0;
 
 				if (positionSegments[i].indexOf("not:") == 0) {
 					positionSegments[i] = positionSegments[i].substr(4);
@@ -104,9 +112,13 @@ define(["Underscore", "text!templates/search.html", "text!templates/companyListS
 
 			var locationSegments = $("input[name='executive[location]']").val() ? $("input[name='executive[location]']").val().split(',') : [];
 			var locationNegated = false;
+			var locationCaseInsensitive = false;
 			var locationRegexStr = "";
 			for (var i in locationSegments) {
 				if (!locationSegments[i] || locationSegments[i].length <= 0) continue;
+				
+				locationSegments[i] = locationSegments[i].replace("regex:", "");
+				locationCaseInsensitive = locationSegments[i].indexOf("ci:") >= 0;
 
 				if (locationSegments[i].indexOf("not:") == 0) {
 					locationSegments[i] = locationSegments[i].substr(4);
@@ -117,15 +129,49 @@ define(["Underscore", "text!templates/search.html", "text!templates/companyListS
 				locationRegexStr += ".\*" + locationSegments[i].trim() + ".\*";
 			}
 
+			var mailAddressesSegments = $("input[name='executive[mailaddress]']").val() ? $("input[name='executive[mailaddress]']").val() : ""; //.split(',') : [];
+			if (mailAddressesSegments.indexOf("regex:") >= 0 || mailAddressesSegments.indexOf("not:") >= 0 || mailAddressesSegments.indexOf("ci:") >= 0) {
+				mailAddressesSegments = [mailAddressesSegments];
+			}
+			else {
+				mailAddressesSegments = mailAddressesSegments.split(",");
+			}
+
+			var mailAddressesNegated = false;
+			var mailAddressesCaseInsensitive = false;
+			var mailAddressesRegexStr = "";
+			for (var i in mailAddressesSegments) {
+				if (!mailAddressesSegments[i] || mailAddressesSegments[i].length <= 0) continue;
+				
+				mailAddressesCaseInsensitive = mailAddressesSegments[i].indexOf("ci:") >= 0;
+				if (mailAddressesSegments[i].indexOf("ci:"))
+					mailAddressesSegments[i] = mailAddressesSegments[i].replace(/,/g, "|");	
+				mailAddressesSegments[i] = mailAddressesSegments[i].replace(/regex\:/g, "");
+				mailAddressesSegments[i] = mailAddressesSegments[i].replace(/in\:/g, "");
+				mailAddressesSegments[i] = mailAddressesSegments[i].replace(/ci\:/g, "");
+
+				if (mailAddressesSegments[i].indexOf("not:") == 0) {
+					mailAddressesSegments[i] = mailAddressesSegments[i].substr(4);
+					mailAddressesNegated = true;
+				}
+
+				if (mailAddressesRegexStr.length > 0) mailAddressesRegexStr += "|";
+				mailAddressesRegexStr += ".\*" + mailAddressesSegments[i].replace(/\./g, "\\.").trim() + ".\*";
+			}
+
+			alert(new RegExp(mailAddressesRegexStr, (mailAddressesCaseInsensitive ? "ig" : "g")));
+
 			var t = _.template(companyListShortTemplate)({
                 "model": collection.toJSON(),
                 "state": collection.state,
-                "departementRegex": departementRegexStr && departementRegexStr.length > 0 ? new RegExp(departementRegexStr) : null,
+                "departementRegex": departementRegexStr && departementRegexStr.length > 0 ? new RegExp(departementRegexStr, (departementCaseInsensitive ? "i" : undefined)) : null,
                 "departementNegated": departementNegated,
-                "positionRegex": positionRegexStr && positionRegexStr.length > 0 ? new RegExp(positionRegexStr) : null,
+                "positionRegex": positionRegexStr && positionRegexStr.length > 0 ? new RegExp(positionRegexStr, (positionCaseInsensitive ? "i" : undefined)) : null,
                 "positionNegated": positionNegated,
-                "locationRegex": locationRegexStr && locationRegexStr.length > 0 ? new RegExp(locationRegexStr) : null,
-                "locationNegated": locationNegated
+                "locationRegex": locationRegexStr && locationRegexStr.length > 0 ? new RegExp(locationRegexStr, (locationCaseInsensitive ? "i" : undefined)) : null,
+                "locationNegated": locationNegated,
+                "mailAddressesRegex": mailAddressesRegexStr && mailAddressesRegexStr.length > 0 ? new RegExp(mailAddressesRegexStr, (mailAddressesCaseInsensitive ? "ig" : "g")) : null,
+                "mailAddressesNegated": mailAddressesNegated
             });
 
 			$('.results').html(t);

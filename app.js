@@ -80,10 +80,31 @@ global.stringToRegexQuery = function(str) {
 		if (!str || str.length <= 0) return undefined;
 
 		if (str.startsWith("not:")) {
-			return { $not: new RegExp(str.substr(4)) }
+			return { $not: global.stringToRegexQuery(str.substr(4)) }
+		}
+		else if (str.startsWith("in:")) {
+			str = str.substr(3);
+			var parts = str.split(",");
+			var arr = [];
+			for (var i = 0; i < parts.length; i++) {
+				var item = global.stringToRegexQuery(parts[i].trim());
+				if (item instanceof Array) {
+					arr = arr.concat(item);
+				}
+				else {
+					arr.push(item);
+				}
+			}
+			return { $in: arr }
+		}
+		else if (str.startsWith("regex:")) {
+			return new RegExp(str.substr(6));
+		}
+		else if (str.startsWith("ci:")) {
+			return new RegExp("^" + str.substr(3) + "$", "i");
 		}
 		else {
-			return new RegExp(str);
+			return str;
 		}
 	}
 	catch (e) {

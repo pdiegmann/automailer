@@ -67,6 +67,7 @@ module.exports = function(db) {
 			var departements = global.stringToRegexQuery(executive.departement);
 			var positions = global.stringToRegexQuery(executive.position);
 			var locations = global.stringToRegexQuery(executive.location);
+			var mailAddresses = global.stringToRegexQuery(executive.mailaddress);
 			
 			var subQueries = [];
 			if (departements) {
@@ -77,6 +78,9 @@ module.exports = function(db) {
 			}
 			if (locations) {
 				subQueries.push({ "location": locations });
+			}
+			if (mailAddresses) {
+				subQueries.push({ "mailAddresses.address": mailAddresses });
 			}
 
 			var query;
