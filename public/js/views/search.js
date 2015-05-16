@@ -159,8 +159,6 @@ define(["Underscore", "text!templates/search.html", "text!templates/companyListS
 				mailAddressesRegexStr += ".\*" + mailAddressesSegments[i].replace(/\./g, "\\.").trim() + ".\*";
 			}
 
-			alert(new RegExp(mailAddressesRegexStr, (mailAddressesCaseInsensitive ? "ig" : "g")));
-
 			var t = _.template(companyListShortTemplate)({
                 "model": collection.toJSON(),
                 "state": collection.state,
@@ -170,7 +168,7 @@ define(["Underscore", "text!templates/search.html", "text!templates/companyListS
                 "positionNegated": positionNegated,
                 "locationRegex": locationRegexStr && locationRegexStr.length > 0 ? new RegExp(locationRegexStr, (locationCaseInsensitive ? "i" : undefined)) : null,
                 "locationNegated": locationNegated,
-                "mailAddressesRegex": mailAddressesRegexStr && mailAddressesRegexStr.length > 0 ? new RegExp(mailAddressesRegexStr, (mailAddressesCaseInsensitive ? "ig" : "g")) : null,
+                "mailAddressesRegex": mailAddressesRegexStr && mailAddressesRegexStr.length > 0 ? new RegExp(mailAddressesRegexStr, (mailAddressesCaseInsensitive ? "i" : undefined)) : null,
                 "mailAddressesNegated": mailAddressesNegated
             });
 
