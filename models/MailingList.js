@@ -3,6 +3,7 @@ module.exports = function(mongoose) {
 		created: { type: Date, default: Date.now, required: true },
 		sendTo: [{ type: mongoose.Schema.ObjectId, ref: 'Person', index: true }],
 		template: { 
+			name: { type: String, index: true },
 			content: { type: String },
 			subject: { type: String, index: true }
 		},

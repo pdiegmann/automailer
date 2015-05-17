@@ -3,6 +3,7 @@
 		<tr>
 			<th></th>
 			<th>Erstellt</th>
+			<th>Vorlage</th>
 			<th></th>
 			<th></th>
 			<th><i class="fa fa-users"></i></th>
@@ -11,6 +12,7 @@
 			<th><i class="fa fa-exclamation-triangle"></i></th>
 			<th><i class="fa fa-check-square-o"></i></th>
 			<th><i class="fa fa-inbox"></i></th>
+			<th></th>
 		</tr>
 	</thead>
 	<tbody>
@@ -22,8 +24,9 @@
 					<%= model[i].created ? moment(model[i].created).calendar() : "" %>
 				<% } %>
 			</td>
+			<td><%= (model[i].template && model[i].template.name ? model[i].template.name : "") %>
 			<td>
-				<a class="btn btn-warning stockUp" data-maillistid="<%= model[i]._id %>">E-Mails aufstocken</a>
+				<a class="btn btn-warning stockUp" data-maillistid="<%= model[i]._id %>">aufstocken</a>
 			</td>
 			<td>
 			<% if (model[i].preparedMails && model[i].preparedMails.length > 0) { %> 
@@ -53,6 +56,7 @@
 				<%= (model[i].answers ? model[i].answers.length : "0") %>
 			</td>
 			<td>
+				<a class="btn btn-primary" data-copymailtemplate="<%= model[i]._id %>"><i class="fa fa-files-o"></i></a>
 				<a href="/!/mail/list/<%= model[i]._id %>" class="btn btn-primary"><i class="fa fa-envelope"></i></a>
 				<a href="/!/mail/list/<%= model[i]._id %>/persons" class="btn btn-primary"><i class="fa fa-users"></i></a>
 				<a href="/!/mail/list/<%= model[i]._id %>/persons/failed" class="btn btn-primary"><i class="fa fa-thumbs-down"></i></a>

@@ -220,6 +220,8 @@ app.get('/dataset/:datasetid/mail/list/:maillistid/persons/successfull', functio
 
 app.get('/dataset/:datasetid/mail/list/:maillistid', api_mailinglists.getMailingListItems);
 
+app.post('/dataset/:datasetid/mail/list/:maillistid/copy/template/:templateid', api_mailinglists.copyMailingList);
+
 app.post('/dataset/:datasetid/mail/list/:maillistid', api_mailinglists.setMailingList);
 
 app.post("/dataset/:datasetid/mail/list/:maillistid/update/mail/:mailid", api_mailinglists.updateMailingListItem);

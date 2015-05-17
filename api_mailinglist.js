@@ -59,6 +59,57 @@ module.exports = function(db) {
 			});
 		},
 
+		copyMailingList: function(req, res, next) {
+			var datasetid = req.params.datasetid;
+			var maillistid = req.params.maillistid;
+			var templateid = req.params.templateid;
+
+			db.MailingListModel
+			.findOne({ "_id": maillistid, "dataset": datasetid }, { __v: 0 })
+			.exec(function(err, mailinglist) {
+				if (err) {
+					console.error(err);
+					return res.send(500);
+				}
+
+				if (!mailinglist) {
+					return res.send(404);
+				}
+
+				db.MailTemplateModel
+				.findOne({ "_id": templateid, "dataset": datasetid }, { __v: 0 })
+				.exec(function(err, mailtemplate) {
+					if (err) {
+						console.error(err);
+						return res.send(500);
+					}
+
+					if (!mailtemplate) {
+						return res.send(404);
+					}
+
+					var newMailingList = {
+						sendTo: mailinglist.sendTo,
+						template: {
+							content: mailtemplate.content,
+							subject: mailtemplate.subject
+						},
+						from: mailinglist.from,
+						dataset: mailingList.dataset
+					};
+
+					newMailingList.save(function(err) {
+						if (err) {
+							console.error(err);
+							return res.send(500);
+						}
+
+						return res.send(200);
+					});
+				});
+			});
+		},
+
 		getMailingList: function(req, res, next) {
 			var datasetid = req.params.datasetid;
 			var maillistid = req.params.maillistid;

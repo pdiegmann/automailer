@@ -2,7 +2,6 @@ define(["Underscore", "text!templates/mailtemplates.html", "text!templates/mailt
 	function(_, mailtemplatesTemplate, mailtemplatesListShortTemplate, paginationTemplate, MailTemplate, MailTemplateCollection) {
 	var mailtemplatesView = Backbone.View.extend({
 		el: $('#content'),
-		triggerCount: 0,
 		collection: new MailTemplateCollection(),
 
 		events: {
@@ -32,8 +31,6 @@ define(["Underscore", "text!templates/mailtemplates.html", "text!templates/mailt
 			this.collection.getFirstPage().done(function() {
 				that.doneFetchingPage();
 			});
-
-			this.triggerCount++;
 		},
 
 		renderCollection: function(collection) {

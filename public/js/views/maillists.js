@@ -2,14 +2,14 @@ define(["Underscore", "text!templates/maillists.html", "text!templates/mailLists
 	function(_, maillistsTemplate, maillistsListShortTemplate, paginationTemplate, MailList, MailListCollection) {
 	var maillistsView = Backbone.View.extend({
 		el: $('#content'),
-		triggerCount: 0,
 		collection: new MailListCollection(),
 
 		events: {
 			'click [data-gotoPage]': 'gotoPage',
 			'click .refresh': 'refresh',
 			'click .sendUnsent': 'sendUnsent',
-			'click .stockUp': 'stockUp'
+			'click .stockUp': 'stockUp',
+			'click [data-copymailtemplate]': 'copyMailTemplate'
 		},
 
 		initialize: function() {
@@ -36,7 +36,14 @@ define(["Underscore", "text!templates/maillists.html", "text!templates/mailLists
 				that.doneFetchingPage();
 			});
 
-			this.triggerCount++;
+			$.get("/dataset/" + $('#dataset-selector').val() + "/mail/templates", function(res) {
+				$('#template-selector').html("<option value=\"\">-- Wählen --</option>");
+				if (res.results && res.results.length > 0) {
+					for (var i = 0; i < res.results.length; i++) {
+						$('#template-selector').append("<option value=\"" + res.results[i]._id + "\">" + res.results[i].name + "</option>");
+					}
+				}
+			});
 		},
 
 		renderCollection: function(collection) {
@@ -151,6 +158,23 @@ define(["Underscore", "text!templates/maillists.html", "text!templates/mailLists
 					that.refresh(e);
 				}, 2500);
 			});
+		},
+
+		copyMailTemplate: function(e) {
+			e.preventDefault();
+			var $e = $(e.target);
+			if (!$e.data("copymailtemplate")) $e = $e.parent();
+			if (!$e.data("copymailtemplate")) $e = $e.parent();
+
+			if ($e.data("copymailtemplate")) {
+				var that = this;
+				that.showLoading();
+				$.post('/dataset/' + $('#dataset-selector').val() + '/mail/list/' + $e.data("copymailtemplate") + '/copy/template/' + $('#dataset-selector').val(), {}, function(res) {
+					that.collection.getFirstPage().done(function() {
+						that.doneFetchingPage();
+					});
+				});
+			}
 		},
 
 		hideLoading: function() {
