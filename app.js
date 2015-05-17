@@ -88,11 +88,13 @@ global.stringToRegexQuery = function(str) {
 			var arr = [];
 			for (var i = 0; i < parts.length; i++) {
 				var item = global.stringToRegexQuery(parts[i].trim());
-				if (item instanceof Array) {
-					arr = arr.concat(item);
-				}
-				else {
-					arr.push(item);
+				if(item !== undefined && item !== null) {
+					if (item instanceof Array) {
+						arr = arr.concat(item);
+					}
+					else if (typeof item === 'RegExp' || item instanceof RegExp || typeof item === 'string' || item instanceof String) {
+						arr.push(item);
+					}
 				}
 			}
 			return { $in: arr }
@@ -101,7 +103,8 @@ global.stringToRegexQuery = function(str) {
 			return new RegExp(str.substr(6));
 		}
 		else if (str.startsWith("ci:")) {
-			return new RegExp("^" + str.substr(3) + "$", "i");
+			return new RegExp("^" + str.substr(3).replace(/\./g, "\\.") + "$", "i");
+			//return new RegExp(str.substr(3).replace(/\./g, "\\."), "i");
 		}
 		else {
 			return str;
