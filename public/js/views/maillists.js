@@ -169,7 +169,10 @@ define(["Underscore", "text!templates/maillists.html", "text!templates/mailLists
 			if ($e.data("copymailtemplate")) {
 				var that = this;
 				that.showLoading();
-				$.post('/dataset/' + $('#dataset-selector').val() + '/mail/list/' + $e.data("copymailtemplate") + '/copy/template/' + $('#dataset-selector').val(), {}, function(res) {
+
+				var params = $('#mailsettings').serializeJSON({checkboxUncheckedValue:"false"});
+
+				$.post('/dataset/' + $('#dataset-selector').val() + '/mail/list/' + $e.data("copymailtemplate") + '/copy/template/' + $('#template-selector').val(), params, function(res) {
 					that.collection.getFirstPage().done(function() {
 						that.doneFetchingPage();
 					});

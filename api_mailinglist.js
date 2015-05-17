@@ -2,6 +2,7 @@ var logger = require('tracer').colorConsole();
 var async = require('async');
 var mongoose = require("mongoose");
 var Buffer = require('buffer');
+var _ = require("underscore");
 
 module.exports = function(db) {
 	return {
@@ -64,6 +65,28 @@ module.exports = function(db) {
 			var maillistid = req.params.maillistid;
 			var templateid = req.params.templateid;
 
+			var parameters = {
+				"sender": {
+			    	"name": "",
+			    	"address": ""
+				},
+				"settings": {
+					"includeAddressStates": [true, false, false, false],
+					"sequential": false,
+					"skip": 0,
+					"take": 100
+				}
+			};
+
+			parameters = req.body.mail || parameters;
+			parameters.settings.sequential = parameters.settings.sequential === "true" || parameters.settings.sequential === "on" ? true : false;
+			parameters.settings.randomPersonSelection = parameters.settings.randomPersonSelection === "true" || parameters.settings.randomPersonSelection === "on" ? true : false;
+			for (var i = 0; i < parameters.settings.includeAddressStates.length; i++) {
+				parameters.settings.includeAddressStates[i] = parameters.settings.includeAddressStates[i] === "true" || parameters.settings.includeAddressStates[i] === "on" ? true : false;
+			}
+			parameters.settings.skip = parseInt(parameters.settings.skip);
+			parameters.settings.take = parseInt(parameters.settings.take);
+
 			db.MailingListModel
 			.findOne({ "_id": maillistid, "dataset": datasetid }, { __v: 0 })
 			.exec(function(err, mailinglist) {
@@ -73,6 +96,7 @@ module.exports = function(db) {
 				}
 
 				if (!mailinglist) {
+					logger.error("mailing list not found (_id: " + maillistid + " dataset: " + datasetid + ")");
 					return res.send(404);
 				}
 
@@ -85,18 +109,19 @@ module.exports = function(db) {
 					}
 
 					if (!mailtemplate) {
+						logger.error("mail template not found (_id: " + templateid + " dataset: " + datasetid + ")");
 						return res.send(404);
 					}
 
-					var newMailingList = {
-						sendTo: mailinglist.sendTo,
-						template: {
-							content: mailtemplate.content,
-							subject: mailtemplate.subject
-						},
-						from: mailinglist.from,
-						dataset: mailingList.dataset
+					var newMailingList = new db.MailingListModel();
+					newMailingList.sendTo = mailinglist.sendTo;
+					newMailingList.template = {
+						name: mailtemplate.name,
+						content: mailtemplate.content,
+						subject: mailtemplate.subject
 					};
+					newMailingList.from = mailinglist.from;
+					newMailingList.dataset = mailinglist.dataset;
 
 					newMailingList.save(function(err) {
 						if (err) {
@@ -104,7 +129,66 @@ module.exports = function(db) {
 							return res.send(500);
 						}
 
-						return res.send(200);
+						async.eachSeries(newMailingList.sendTo, function (receiver, callback) {
+							db.PersonModel.findOne({ "dataset": datasetid, "active": true, "_id": receiver }, { __v: 0, raw: 0 }, function(err, receiver) {
+								if (err) {
+									return callback(err);
+								}
+
+								logger.log("Processing " + receiver.firstName + " " + receiver.lastName);
+
+								receiver.populate("company", "-__v -raw", function(err, receiver) {
+									if (err) {
+										return callback(err);
+									}
+
+									var countProcessedMailAddresses = 0;
+									async.eachSeries(receiver.mailAddresses, function (mailAddress, callback) {
+										if (parameters.settings.includeAddressStates[mailAddress.state] !== true) return callback();
+										if (parameters.settings.sequential === true && countProcessedMailAddresses > 0) return callback();
+
+										logger.log("Preparing mail to " + mailAddress.address);
+
+										var mail = new db.MailModel();
+										
+										mail.body = _.template(newMailingList.template.content.decodeHTML())({
+											"sender": { name: parameters.sender.name, address: parameters.sender.address },
+											"receiver": receiver.toJSON()
+										});
+
+										mail.subject = _.template(newMailingList.template.subject.decodeHTML())({
+											"sender": { name: parameters.sender.name, address: parameters.sender.address },
+											"receiver": receiver.toJSON()
+										});
+
+										mail.to = mailAddress.address;
+										mail.from = ((parameters.sender.name && parameters.sender.name.length > 0) ? ("\"" + parameters.sender.name + "\" ") : "") + "<" + parameters.sender.address + ">";
+										mail.person = receiver._id;
+										mail.dataset = newMailingList.dataset;
+										mail.inMailingList = newMailingList._id;
+										mail.save(function(err) {
+											if (err) {
+												return callback(err);
+											}
+											else {
+												countProcessedMailAddresses++;
+												if (!newMailingList.preparedMails) newMailingList.preparedMails = [];
+												newMailingList.preparedMails.push(mail);
+												newMailingList.save(callback);
+											}
+										});
+									}, callback);
+								});
+							});
+						}, function (err) {
+							if (err) {
+								logger.error(err);
+								return res.send(500);
+							}
+							else {
+								return res.send(200);
+							}
+						});
 					});
 				});
 			});

@@ -103,7 +103,7 @@ function processMailings() {
 		async.eachSeries(mailingList.preparedMails, function (mail, callback) {
 			logger.log("Processing Mail to " + mail.to);
 
-			MailModel.count({ dataset: datasetId, to: mail.to, sent: { "$ne": null } }, function(err, countMailsToSameReceipient) {
+			MailModel.count({ dataset: datasetId, inMailingList: mailingList._id, to: mail.to, sent: { "$ne": null } }, function(err, countMailsToSameReceipient) {
 				if (err) {
 					logger.error(err);
 					return callback();

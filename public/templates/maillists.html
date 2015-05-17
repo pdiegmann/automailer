@@ -127,7 +127,19 @@
 					</div>
 				</div>
 				<div role="tabpanel" class="tab-pane" id="mailtemplate">
-					<div class="form-group" style="margin-top: 1.25em;">
+					<div class="form-group form-group-sm">
+						<label for="mail[name]" class="col-sm-2 control-label">Name:</label>
+						<div class="col-sm-9 col-sm-offset-1" style="margin-top: 0.33em;">
+							<input class="form-control" type="text" name="mail[sender][name]" placeholder="Anzeigename" />
+						</div>
+					</div>
+					<div class="form-group form-group-sm">
+						<label for="mail[address]" class="col-sm-2 control-label">Von:</label>
+						<div class="col-sm-9 col-sm-offset-1" style="margin-top: 0.33em;">
+							<input class="form-control" type="email" name="mail[sender][address]" placeholder="E-Mail" />
+						</div>
+					</div>
+					<div class="form-group">
 						<label for="template-selector" class="col-sm-2 control-label">Template:</label>
 						<div class="col-sm-9 col-sm-offset-1" style="margin-top: 0.33em;">
 							<select class="form-control" id="template-selector" name="template-selector">
