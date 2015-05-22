@@ -41,9 +41,17 @@ module.exports = function(db) {
 			        'Content-Disposition': 'attachment; filename="export_' + friendlyDate + '.csv"'
 			    });
 
+			    var loggedPersonIds = [];
+
 				res.write("Vorname;Nachname;Position;Department;Firma;Datenbank;ID\n");
 				async.eachSeries(mailingLists, function(mailingList, callback) {
 					async.eachSeries(mailingList.sendTo, function(receiver, callback) {
+						if (loggedPersonIds.indexOf(receiver._id + "") >= 0) {
+							return callback();
+						}
+
+						loggedPersonIds.push(receiver.id + "");
+
 						receiver.populate("company", "-__v -raw", function(err, receiver) {
 							var str = receiver.firstName.replace(";", ",") + ";" + receiver.lastName.replace(";", ",") + ";" + receiver.position.replace(";", ",") + ";" + receiver.departement.replace(";", ",") + ";" + receiver.company.name.replace(";", ",") + ";" + receiver.company.publisher.replace(";", ",") + ";" + receiver.company.publisherId.replace(";", ",").replace(".", "").trim() + "\n";
 							res.write(str, "latin1");
