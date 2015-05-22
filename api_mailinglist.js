@@ -27,7 +27,7 @@ module.exports = function(db) {
 					return res.end();
 				}
 
-				if (!mailingLists) {
+				if (!mailingLists || mailingLists.length <= 0) {
 					res.write("\n\nNo Mailing Lists");
 					return res.end();	
 				}
