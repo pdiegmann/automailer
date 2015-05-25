@@ -20,14 +20,6 @@
 			"runtimeExecutable": null,
 			// Environment variables passed to the program.
 			"env": { }
-		}, 
-		{
-			"name": "Attach",
-			"type": "node",
-			// TCP/IP address. Default is "localhost".
-			"address": "localhost",
-			// Port to attach to.
-			"port": 5858
 		}
 	]
 }

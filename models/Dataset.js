@@ -6,4 +6,4 @@ module.exports = function(mongoose) {
 	});
 
 	return mongoose.model("Dataset", DatasetSchema);
-}
+};

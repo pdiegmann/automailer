@@ -11,112 +11,6 @@ var _ = require("underscore");
 iconv.extendNodeEncodings();
 
 /******
-	PROTOTYPES
-*****/
-
-if (typeof String.prototype.startsWith != 'function') {
-	String.prototype.startsWith = function (str){
-		return this.slice(0, str.length) == str;
-	};
-}
-
-if (typeof String.prototype.endsWith != 'function') {
-	String.prototype.endsWith = function (str){
-		return this.slice(-str.length) == str;
-	};
-}
-
-if (typeof String.prototype.decodeHTML != 'function') {
-	String.prototype.decodeHTML = function() {
-	    var map = {"gt":">", "lt": "<", "amp": "&", "quot": "\""};
-	    return this.replace(/&(#(?:x[0-9a-f]+|\d+)|[a-z]+);?/gi, function($0, $1) {
-	        if ($1[0] === "#") {
-	            return String.fromCharCode($1[1].toLowerCase() === "x" ? parseInt($1.substr(2), 16)  : parseInt($1.substr(1), 10));
-	        } else {
-	            return map.hasOwnProperty($1) ? map[$1] : $0;
-	        }
-	    });
-	};
-}
-
-global.shuffleArray = function(array) {
-    for (var i = array.length - 1; i > 0; i--) {
-        var j = Math.floor(Math.random() * (i + 1));
-        var temp = array[i];
-        array[i] = array[j];
-        array[j] = temp;
-    }
-    return array;
-};
-
-global.stringArrayToRegexArray = function(strArray) {
-	if (!strArray) return [];
-	var segments = strArray.split(",");
-	var regexes = [];
-	var segmentsLength = segments.length;
-	if (segmentsLength <= 0) return [];
-	for (var i in segments) {
-		if (!segments[i] || segments[i].trim().length <= 0) continue;
-		regexes.push(new RegExp(".*" + segments[i].trim() + ".*"));
-	}
-	return regexes;
-};
-
-global.stringArrayToNumberArray = function(strArray) {
-	if (!strArray) return [];
-	var segments = strArray.split(",");
-	var numbers = [];
-	var segmentsLength = segments.length;
-	if (segmentsLength <= 0) return [];
-	for (var i in segments) {
-		if (!segments[i] || segments[i].trim().length <= 0) continue;
-		numbers.push(parseInt(segments[i].trim()));
-	}
-	return numbers;
-};
-
-global.stringToRegexQuery = function(str) {
-	try {
-		if (!str || str.length <= 0) return undefined;
-
-		if (str.startsWith("not:")) {
-			return { $not: global.stringToRegexQuery(str.substr(4)) }
-		}
-		else if (str.startsWith("in:")) {
-			str = str.substr(3);
-			var parts = str.split(",");
-			var arr = [];
-			for (var i = 0; i < parts.length; i++) {
-				var item = global.stringToRegexQuery(parts[i].trim());
-				if(item !== undefined && item !== null) {
-					if (item instanceof Array) {
-						arr = arr.concat(item);
-					}
-					else if (typeof item === 'RegExp' || item instanceof RegExp || typeof item === 'string' || item instanceof String) {
-						arr.push(item);
-					}
-				}
-			}
-			return { $in: arr }
-		}
-		else if (str.startsWith("regex:")) {
-			return new RegExp(str.substr(6));
-		}
-		else if (str.startsWith("ci:")) {
-			return new RegExp("^" + str.substr(3).replace(/\./g, "\\.") + "$", "i");
-			//return new RegExp(str.substr(3).replace(/\./g, "\\."), "i");
-		}
-		else {
-			return str;
-		}
-	}
-	catch (e) {
-		logger.error(e);
-		return undefined;
-	}
-};
-
-/******
 	ARGUMENTS
 *****/
 
@@ -146,6 +40,13 @@ db.MailTemplateModel = require("./models/MailTemplate")(db.connection);
 db.PersonModel = require("./models/Person")(db.connection);
 db.CompanyModel = require("./models/Company")(db.connection);
 db.FirstNameModel = require("./models/FirstName")(db.connection);
+
+/******
+	PROTOTYPES & GLOBALS
+*****/
+
+require("./prototypes");
+require("./globals")(db);
 
 /******
 	API

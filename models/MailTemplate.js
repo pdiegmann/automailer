@@ -7,4 +7,4 @@ module.exports = function(mongoose) {
 	});
 
 	return mongoose.model("MailTemplate", MailTemplateSchema);
-}
+};

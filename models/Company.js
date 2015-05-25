@@ -34,4 +34,4 @@ module.exports = function(mongoose) {
 	});
 
 	return mongoose.model("Company", CompanySchema);
-}
+};

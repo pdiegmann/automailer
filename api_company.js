@@ -56,120 +56,66 @@ module.exports = function(db) {
 			var skip = req.param("skip", 0);
 			if (isNaN(skip) || skip < 0) skip = 0;
 			skip = parseInt(skip);
-
-			var executive = req.param("executive", { departement: "", position: "" });
-			var company = req.param("company", { name: "", employees: { gt: -1, lt: -1 }, branch: { USSIC: -1, NACE: -1 } });
-
-			//var departements = global.stringArrayToRegexArray(executive.departement);
-			//var positions = global.stringArrayToRegexArray(executive.position);
-			//var locations = global.stringArrayToRegexArray(executive.location);
-
-			var departements = global.stringToRegexQuery(executive.departement);
-			var positions = global.stringToRegexQuery(executive.position);
-			var locations = global.stringToRegexQuery(executive.location);
-			var mailAddresses = global.stringToRegexQuery(executive.mailaddress);
 			
-			var subQueries = [];
-			if (departements) {
-				subQueries.push({ "departement": departements });
-			}
-			if (positions) {
-				subQueries.push({ "position": positions });
-			}
-			if (locations) {
-				subQueries.push({ "location": locations });
-			}
-			if (mailAddresses) {
-				subQueries.push({ "mailAddresses.address": mailAddresses });
+			var filter = global.getFilter(req, true); 
+			var personSubQueries = filter.personSubQueries;
+			var subQueriesCompany = filter.subQueriesCompany;
+			
+			var personQueryTasks = [];
+			if (filter.executive.onlyNotInMailingList === true || filter.company.onlyNotInMailingList === true) {
+				personQueryTasks.push(global.getExcludeQueryTask(filter, datasetid));
 			}
 
-			var query;
-			if (subQueries.length > 0) {
-				query = { dataset: datasetid, "active": true, $and: subQueries };
-			}
-			else {
-				query = { dataset: datasetid, "active": true };
-			}
+			personQueryTasks.push(function(callback) {
+				var query = global.getPersonQuery(filter, personSubQueries, datasetid);
+				//logger.log(JSON.stringify(query));
 
-			logger.log(JSON.stringify(query));
-
-			db.PersonModel.find(query, { raw: 0, title: 0, firstName: 0, lastName: 0, location: 0, departement: 0, position: 0, created: 0, updated: 0, mailAddresses: 0,  telephone: 0, company: 0, active: 0, dataset: 0, "__v": 0 }, function (err, personIds) {
+				db.PersonModel.find(query, { raw: 0, title: 0, firstName: 0, lastName: 0, location: 0, departement: 0, position: 0, created: 0, updated: 0, mailAddresses: 0,  telephone: 0, company: 0, active: 0, dataset: 0, "__v": 0 }, function (err, personIds) {
+					if (err) {
+						return callback(err);
+					}
+	
+					if (!personIds)
+						return callback("no person ids");
+	
+					logger.log("skip: " + skip + " take: " + take + " person count: " + personIds.length);
+	
+					var queryCompany = global.getCompanyQuery(filter, subQueriesCompany, personIds, datasetid);
+	
+					db.CompanyModel.count(queryCompany, function(err, count) {
+						db.CompanyModel.find(queryCompany, { "raw": 0, "__v": 0 })
+						.populate("executives", "-raw -__v")
+						.sort({ orderNr: 1 })
+						.limit(take)
+						.skip(skip)
+						.exec(function (err, companies) {
+							if (err) {
+								return callback(err);
+							}
+	
+							if (!companies)
+								return callback("no companies");
+	
+						    var elapsed = process.hrtime(start)[1] / 1000000; // divide by a million to get nano to milli
+	
+							return callback(null, { duration: parseFloat(Math.round(elapsed).toFixed(0)), take: take, skip: skip, count: companies.length, personCount: personIds.length, total: count, results: companies});
+						});
+					});
+				});
+			});
+			
+			async.series(personQueryTasks, function(err, result) {
 				if (err) {
 					logger.error(err);
 					return res.send(500);
+				} else { 
+					var lastResult = result.pop();
+					if (lastResult) {
+						return res.json(lastResult);
+					} else {
+						res.send(500);
+					}
 				}
-
-				if (!personIds)
-					return res.send(500);
-
-				logger.log("skip: " + skip + " take: " + take + " person count: " + personIds.length);
-
-				//var companyNames = global.stringArrayToRegexArray(company.name);
-				var companyNames = global.stringToRegexQuery(company.name);
-
-				var employeesGT;
-				var employeesLT;
-				if (company.employees) {
-					if (company.employees.gt && !isNaN(company.employees.gt))
-						employeesGT = parseInt(company.employees.gt);
-					if (company.employees.lt && !isNaN(company.employees.lt))
-						employeesLT = parseInt(company.employees.lt);
-				}
-				var branchesNACE;
-				var branchesUSSIC;
-				if (company.branch) {
-					branchesNACE = global.stringArrayToNumberArray(company.branch.NACE);
-					branchesUSSIC = global.stringArrayToNumberArray(company.branch.USSIC);
-				}
-
-				var orQueriesCompany = [];
-				if (companyNames) { // && companyNames.length > 0) {
-					orQueriesCompany.push({ "name": companyNames }); // { $in : companyNames } });
-				} 
-				if (employeesGT && !isNaN(employeesGT) && employeesLT && !isNaN(employeesLT)) {
-					orQueriesCompany.push({ "employees": { $gte: employeesGT, $lte: employeesLT } });
-				}
-				else {
-					if (employeesGT && !isNaN(employeesGT)) {
-						orQueriesCompany.push({ "employees": { $gte: employeesGT } });
-					} 
-					else if (employeesLT && !isNaN(employeesLT)) {
-						orQueriesCompany.push({ "employees": { $lte: employeesLT } });
-					} 
-				}
-				if (branchesNACE && branchesNACE.length > 0) {
-					orQueriesCompany.push({ "branch.NACE": { $in : branchesNACE } });
-				} 
-				if (branchesUSSIC && branchesUSSIC.length > 0) {
-					orQueriesCompany.push({ "branch.USSIC": { $in : branchesUSSIC } });
-				} 
-
-				var queryCompany;
-				if (orQueriesCompany.length > 0) 
-					queryCompany = { dataset: datasetid, executives: { $in: personIds }, "active": true, $or: orQueriesCompany}
-				else
-					queryCompany = { dataset: datasetid, executives: { $in: personIds }, "active": true}
-
-				db.CompanyModel.count(queryCompany, function(err, count) {
-					db.CompanyModel.find(queryCompany, { "raw": 0, "__v": 0 })
-					.populate("executives", "-raw -__v")
-					.sort({ orderNr: 1 })
-					.limit(take)
-					.skip(skip)
-					.exec(function (err, companies) {
-						if (err) {
-							logger.debug(req.params, err);
-							return res.send(500);
-						}
-
-						if (!companies)
-							return res.send(500);
-
-					    var elapsed = process.hrtime(start)[1] / 1000000; // divide by a million to get nano to milli
-
-						return res.json({ duration: parseFloat(Math.round(elapsed).toFixed(0)), take: take, skip: skip, count: companies.length, personCount: personIds.length, total: count, results: companies});
-					});
-				});
 			});
 		},
 

@@ -55,7 +55,7 @@ define(["Underscore", "text!templates/search.html", "text!templates/companyListS
 
 			Backbone.history.navigate("!/search", true);
 			
-			var params = $('#search_details').serializeJSON();
+			var params = $('#search_details').serializeJSON({checkboxUncheckedValue:"false"});
 			if (!this.collection.queryParams) this.collection.queryParams = {};
 			$.extend(this.collection.queryParams,params);
 

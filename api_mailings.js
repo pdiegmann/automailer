@@ -158,257 +158,177 @@ module.exports = function(db) {
 			var datasetid = req.params.datasetid;
 			var templateid = req.params.templateid;
 
-			var parameters = {
-				"sender": {
-			    	"name": "",
-			    	"address": ""
-				},
-				"settings": {
-					"includeAddressStates": [true, false, false, false],
-					"sequential": false,
-					"skip": 0,
-					"take": 100
-				}
-			};
-
-			var executive = req.body.executive || { departement: "", position: "" };
-			var company = req.body.company || { name: "", employees: { gt: -1, lt: -1 }, branch: { USSIC: -1, NACE: -1 } };
-			company.employees.gt = parseInt(company.employees.gt);
-			company.employees.lt = parseInt(company.employees.lt);
-			company.branch.NACE = parseInt(company.branch.NACE);
-			company.branch.USSIC = parseInt(company.branch.USSIC);
-
-			parameters = req.body.mail || parameters;
-			parameters.settings.sequential = parameters.settings.sequential === "true" || parameters.settings.sequential === "on" ? true : false;
-			parameters.settings.randomPersonSelection = parameters.settings.randomPersonSelection === "true" || parameters.settings.randomPersonSelection === "on" ? true : false;
-			for (var i = 0; i < parameters.settings.includeAddressStates.length; i++) {
-				parameters.settings.includeAddressStates[i] = parameters.settings.includeAddressStates[i] === "true" || parameters.settings.includeAddressStates[i] === "on" ? true : false;
-			}
-			parameters.settings.skip = parseInt(parameters.settings.skip);
-			parameters.settings.take = parseInt(parameters.settings.take);
-
-			var departements = global.stringToRegexQuery(executive.departement);
-			var positions = global.stringToRegexQuery(executive.position);
-			var locations = global.stringToRegexQuery(executive.location);
-
-			var subQueries = [];
-			if (departements) {
-				subQueries.push({ "departement": departements });
-			}
-			if (positions) {
-				subQueries.push({ "position": positions });
-			}
-			if (locations) {
-				subQueries.push({ "location": locations });
+			var parameters = global.getMailSettings(req);
+			var filter = global.getFilter(req, false); 
+			var personSubQueries = filter.personSubQueries;
+			var subQueriesCompany = filter.subQueriesCompany;
+			
+			var personQueryTasks = [];
+			if (filter.executive.onlyNotInMailingList === true || filter.company.onlyNotInMailingList === true) {
+				personQueryTasks.push(global.getExcludeQueryTask(filter, datasetid));
 			}
 
-			var query;
-			if (subQueries.length > 0) {
-				query = { dataset: datasetid, "active": true, $and: subQueries };
-			}
-			else {
-				query = { dataset: datasetid, "active": true };
-			}
-
-			logger.log(JSON.stringify(query));
-
-			var personIdsToContact = [];
-
-			db.PersonModel.find(query, { raw: 0, title: 0, firstName: 0, lastName: 0, location: 0, departement: 0, position: 0, created: 0, updated: 0, mailAddresses: 0,  telephone: 0, company: 0, active: 0, dataset: 0, "__v": 0 }, function (err, docs) {
-				if (err) {
-					logger.error(err);
-					return res.send(500);
-				}
-
-				if (!docs)
-					return res.send(500);
-
-				var personIds = [];
-				for (var i in docs) {
-					if (docs[i] && docs[i]._id && docs[i]._id.length <= 0) continue;
-					personIds.push(docs[i]._id);
-				}
-
-				var companyNames = global.stringToRegexQuery(company.name);
-				var employeesGT;
-				var employeesLT;
-				if (company.employees) {
-					if (company.employees.gt && !isNaN(company.employees.gt))
-						employeesGT = parseInt(company.employees.gt);
-					if (company.employees.lt && !isNaN(company.employees.lt))
-						employeesLT = parseInt(company.employees.lt);
-				}
-				var branchesNACE;
-				var branchesUSSIC;
-				if (company.branch) {
-					branchesNACE = global.stringArrayToNumberArray(company.branch.NACE);
-					branchesUSSIC = global.stringArrayToNumberArray(company.branch.USSIC);
-				}
-
-				var orQueriesCompany = [];
-				if (companyNames && companyNames.length > 0) {
-					orQueriesCompany.push({ "name": { $in : companyNames } });
-				} 
-				if (employeesGT && !isNaN(employeesGT) && employeesLT && !isNaN(employeesLT)) {
-					orQueriesCompany.push({ "employees": { $gte: employeesGT, $lte: employeesLT } });
-				}
-				else {
-					if (employeesGT && !isNaN(employeesGT)) {
-						orQueriesCompany.push({ "employees": { $gte: employeesGT } });
-					} 
-					else if (employeesLT && !isNaN(employeesLT)) {
-						orQueriesCompany.push({ "employees": { $lte: employeesLT } });
-					} 
-				}
-				if (branchesNACE && branchesNACE.length > 0) {
-					orQueriesCompany.push({ "branch.NACE": { $in : branchesNACE } });
-				} 
-				if (branchesUSSIC && branchesUSSIC.length > 0) {
-					orQueriesCompany.push({ "branch.USSIC": { $in : branchesUSSIC } });
-				} 
-
-				var queryCompany;
-				if (orQueriesCompany.length > 0) 
-					queryCompany = { dataset: datasetid, executives: { $in: personIds }, "active": true, $or: orQueriesCompany}
-				else
-					queryCompany = { dataset: datasetid, executives: { $in: personIds }, "active": true}
-
-				logger.log("skip: " + parameters.settings.skip + " take: " + parameters.settings.take);
-				db.CompanyModel.find(queryCompany, { "raw": 0, "__v": 0 })
-				.skip(parameters.settings.skip)
-				.limit(parameters.settings.take)
-				.sort({ "orderNr": 1 })
-				.exec(function(err, docs) {
+			personQueryTasks.push(function(callback) {
+				var query = global.getPersonQuery(filter, personSubQueries, datasetid);
+				logger.log(JSON.stringify(query));
+	
+				var personIdsToContact = [];
+				db.PersonModel.find(query, { raw: 0, title: 0, firstName: 0, lastName: 0, location: 0, departement: 0, position: 0, created: 0, updated: 0, mailAddresses: 0,  telephone: 0, company: 0, active: 0, dataset: 0, "__v": 0 }, function (err, docs) {
 					if (err) {
 						logger.error(err);
+						return res.send(500);
 					}
-
-					if (!docs || docs.length <= 0) {
-						logger.error("no companies found!");
-					}
-
+	
+					if (!docs)
+						return res.send(500);
+	
+					var personIds = [];
 					for (var i in docs) {
-						var company = docs[i];
-						if (!company || !company.executives || company.executives.length <= 0 || !company.active || company.active !== true) continue;
-						
-						for (var k = 0; k < company.executives.length; k++) {
-							var positionsToDelete = [];
-							var personFound = false;
-							for (var j = 0; j < personIds.length; j++) {
-								if ((personIds[j] + "") === company.executives[k] + "") {
-									positionsToDelete.push(j);
-									personIdsToContact.push(personIds[j]);
-									personFound = true;
-									break;
-								}	
-							}
-
-							if (parameters.settings.randomPersonSelection === true && personFound) {
-								break;
-							}
-
-							for (var j in positionsToDelete) {
-								personIds.splice(j, 1);
-							}
-						}
+						if (docs[i] && docs[i]._id && docs[i]._id.length <= 0) continue;
+						personIds.push(docs[i]._id);
 					}
-
-					db.MailTemplateModel.findOne({ "_id": templateid, "dataset": datasetid }, { __v: 0 }).exec(function(err, doc) {
+	
+					var queryCompany = global.getCompanyQuery(filter, subQueriesCompany, personIds, datasetid);
+	
+					logger.log("skip: " + parameters.settings.skip + " take: " + parameters.settings.take);
+					db.CompanyModel.find(queryCompany, { "raw": 0, "__v": 0 })
+					.skip(parameters.settings.skip)
+					.limit(parameters.settings.take)
+					.sort({ "orderNr": 1 })
+					.exec(function(err, docs) {
 						if (err) {
 							logger.error(err);
-							return res.send(500);
 						}
-
-						if (!doc) {
-							return res.send(404);
+	
+						if (!docs || docs.length <= 0) {
+							logger.error("no companies found!");
 						}
-
-						var mailingList = new db.MailingListModel();
-						mailingList.sendTo = personIdsToContact;
-						mailingList.dataset = datasetid;
-						mailingList.from = {
-							address: parameters.sender.address,
-							name: parameters.sender.name
-						};
-						mailingList.template = {
-							content: doc.content,
-							subject: doc.subject
-						};
-
-						mailingList.save(function(err) {
+	
+						for (var i in docs) {
+							var company = docs[i];
+							if (!company || !company.executives || company.executives.length <= 0 || !company.active || company.active !== true) continue;
+							
+							for (var k = 0; k < company.executives.length; k++) {
+								var positionsToDelete = [];
+								var personFound = false;
+								for (var j = 0; j < personIds.length; j++) {
+									if ((personIds[j] + "") === company.executives[k] + "") {
+										positionsToDelete.push(j);
+										personIdsToContact.push(personIds[j]);
+										personFound = true;
+										break;
+									}	
+								}
+	
+								if (parameters.settings.randomPersonSelection === true && personFound) {
+									break;
+								}
+	
+								for (var j in positionsToDelete) {
+									personIds.splice(j, 1);
+								}
+							}
+						}
+	
+						db.MailTemplateModel.findOne({ "_id": templateid, "dataset": datasetid }, { __v: 0 }).exec(function(err, doc) {
 							if (err) {
 								logger.error(err);
 								return res.send(500);
 							}
-
-							if (parameters.settings.randomPersonSelection === true) {
-								global.shuffleArray(mailingList.sendTo);
+	
+							if (!doc) {
+								return res.send(404);
 							}
-
-							async.eachSeries(mailingList.sendTo, function (receiver, callback) {
-								db.PersonModel.findOne({ "dataset": datasetid, "active": true, "_id": receiver }, { __v: 0, raw: 0 }, function(err, receiver) {
-									if (err) {
-										return callback(err);
-									}
-
-									logger.log("Processing " + receiver.firstName + " " + receiver.lastName);
-
-									receiver.populate("company", "-__v -raw", function(err, receiver) {
-										if (err) {
-											return callback(err);
-										}
-
-										var countProcessedMailAddresses = 0;
-										async.eachSeries(receiver.mailAddresses, function (mailAddress, callback) {
-											if (parameters.settings.includeAddressStates[mailAddress.state] !== true) return callback();
-											if (parameters.settings.sequential === true && countProcessedMailAddresses > 0) return callback();
-
-											logger.log("Preparing mail to " + mailAddress.address);
-
-											var mail = new db.MailModel();
-											
-											mail.body = _.template(mailingList.template.content.decodeHTML())({
-												"sender": { name: parameters.sender.name, address: parameters.sender.address },
-												"receiver": receiver.toJSON()
-											});
-
-											mail.subject = _.template(mailingList.template.subject.decodeHTML())({
-												"sender": { name: parameters.sender.name, address: parameters.sender.address },
-												"receiver": receiver.toJSON()
-											});
-
-											mail.to = mailAddress.address;
-											mail.from = ((parameters.sender.name && parameters.sender.name.length > 0) ? ("\"" + parameters.sender.name + "\" ") : "") + "<" + parameters.sender.address + ">";
-											mail.person = receiver._id;
-											mail.dataset = mailingList.dataset;
-											mail.inMailingList = mailingList._id;
-											mail.save(function(err) {
-												if (err) {
-													return callback(err);
-												}
-												else {
-													countProcessedMailAddresses++;
-													if (!mailingList.preparedMails) mailingList.preparedMails = [];
-													mailingList.preparedMails.push(mail);
-													mailingList.save(callback);
-												}
-											});
-										}, callback);
-									});
-								});
-							}, function (err) {
+	
+							var mailingList = new db.MailingListModel();
+							mailingList.sendTo = personIdsToContact;
+							mailingList.dataset = datasetid;
+							mailingList.from = {
+								address: parameters.sender.address,
+								name: parameters.sender.name
+							};
+							mailingList.template = {
+								content: doc.content,
+								subject: doc.subject
+							};
+	
+							mailingList.save(function(err) {
 								if (err) {
 									logger.error(err);
 									return res.send(500);
 								}
-								else {
-									return res.send(200);
+	
+								if (parameters.settings.randomPersonSelection === true) {
+									global.shuffleArray(mailingList.sendTo);
 								}
+	
+								async.eachSeries(mailingList.sendTo, function (receiver, callback) {
+									db.PersonModel.findOne({ "dataset": datasetid, "active": true, "_id": receiver }, { __v: 0, raw: 0 }, function(err, receiver) {
+										if (err) {
+											return callback(err);
+										}
+	
+										logger.log("Processing " + receiver.firstName + " " + receiver.lastName);
+	
+										receiver.populate("company", "-__v -raw", function(err, receiver) {
+											if (err) {
+												return callback(err);
+											}
+	
+											var countProcessedMailAddresses = 0;
+											async.eachSeries(receiver.mailAddresses, function (mailAddress, callback) {
+												if (parameters.settings.includeAddressStates[mailAddress.state] !== true) return callback();
+												if (parameters.settings.sequential === true && countProcessedMailAddresses > 0) return callback();
+	
+												logger.log("Preparing mail to " + mailAddress.address);
+	
+												var mail = new db.MailModel();
+												
+												mail.body = _.template(mailingList.template.content.decodeHTML())({
+													"sender": { name: parameters.sender.name, address: parameters.sender.address },
+													"receiver": receiver.toJSON()
+												});
+	
+												mail.subject = _.template(mailingList.template.subject.decodeHTML())({
+													"sender": { name: parameters.sender.name, address: parameters.sender.address },
+													"receiver": receiver.toJSON()
+												});
+	
+												mail.to = mailAddress.address;
+												mail.from = ((parameters.sender.name && parameters.sender.name.length > 0) ? ("\"" + parameters.sender.name + "\" ") : "") + "<" + parameters.sender.address + ">";
+												mail.person = receiver._id;
+												mail.dataset = mailingList.dataset;
+												mail.inMailingList = mailingList._id;
+												mail.save(function(err) {
+													if (err) {
+														return callback(err);
+													}
+													else {
+														countProcessedMailAddresses++;
+														if (!mailingList.preparedMails) mailingList.preparedMails = [];
+														mailingList.preparedMails.push(mail);
+														mailingList.save(callback);
+													}
+												});
+											}, callback);
+										});
+									});
+								}, function (err) {
+									if (err) {
+										logger.error(err);
+										return res.send(500);
+									}
+									else {
+										return res.send(200);
+									}
+								});
 							});
 						});
 					});
 				});
 			});
+			
+			async.series(personQueryTasks);
 		},
 
 		sendToFilter: function(req, res, next) {
@@ -442,6 +362,9 @@ module.exports = function(db) {
 
 			var executive = req.body.executive || { departement: "", position: "" };
 			var company = req.body.company || { name: "", employees: { gt: -1, lt: -1 }, branch: { USSIC: -1, NACE: -1 } };
+			
+			executive.onlyNotInMailingList = executive.onlyNotInMailingList === true || executive.onlyNotInMailingList === "on" || executive.onlyNotInMailingList === "true";
+			company.onlyNotInMailingList = company.onlyNotInMailingList === true || company.onlyNotInMailingList === "on" || company.onlyNotInMailingList === "true";
 			company.employees.gt = parseInt(company.employees.gt);
 			company.employees.lt = parseInt(company.employees.lt);
 			company.branch.NACE = parseInt(company.branch.NACE);
