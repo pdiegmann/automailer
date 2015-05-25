@@ -117,6 +117,23 @@ global.stringToRegexQuery = function(str) {
 };
 
 /******
+	ARGUMENTS
+*****/
+
+var port = 8000;
+var host = "localhost";
+process.argv.forEach(function(val, index, array) {
+	logger.log(index + ': ' + val);
+	if (val.indexOf("port=") >= 0 || val.indexOf("p=") >= 0) {
+		var _port = val.split("=").pop();
+		if (!isNaN(_port)) port = _port;
+	}
+	else if (val.indexOf("host=") >= 0 || val.indexOf("h=") >= 0) {
+		host = val.split("=").pop();
+	}
+});
+
+/******
 	MODELS
 *****/
 
@@ -259,4 +276,4 @@ app.get("/", function(req, res, next) {
 	res.render(__dirname + "/views/index.jade", { layout: false });
 });
 
-app.listen(8000);
+app.listen(port);
