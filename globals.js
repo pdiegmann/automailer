@@ -42,17 +42,23 @@ module.exports = function(db) {
 	
 	global.getPersonQuery = function(filter, personSubQueries, datasetid) {
 		var query;
+		var exclusionQueries = [];
 		if (filter.excludePersonIds && filter.excludePersonIds.length > 0) {
-			personSubQueries.push({ "_id": { $nin: filter.excludePersonIds } });
+			exclusionQueries.push({ "_id": { $nin: filter.excludePersonIds } });
 		}
 		if (filter.excludeCompanyIds && filter.excludeCompanyIds.length > 0) {
-			personSubQueries.push({ "company": { $nin: filter.excludeCompanyIds } });
+			exclusionQueries.push({ "company": { $nin: filter.excludeCompanyIds } });
 		}
 		if (personSubQueries.length > 0) {					
+			personSubQueries = personSubQueries.concat(exclusionQueries);
 			query = { dataset: datasetid, "active": true, $and: personSubQueries };
 		}
 		else {
-			query = { dataset: datasetid, "active": true };
+			if (exclusionQueries.length > 0) {
+				query = { dataset: datasetid, "active": true, $and: exclusionQueries };
+			} else {
+				query = { dataset: datasetid, "active": true };
+			}
 		}
 		
 		return query;
