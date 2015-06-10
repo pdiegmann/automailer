@@ -83,6 +83,10 @@ define(["text!templates/maillist.html", "text!templates/mailListShort.html", "mo
 			}
 
 			this.hideLoading();
+
+			$('html, body').animate({
+		        scrollTop: $("#results_table_container").offset().top
+		    }, 300);
 		},
 
 		gotoPage: function(e) {

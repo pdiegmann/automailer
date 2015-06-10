@@ -106,6 +106,7 @@ module.exports = function(db) {
 			
 			async.series(personQueryTasks, function(err, result) {
 				if (err) {
+					console.log(err.stack);
 					logger.error(err);
 					return res.send(500);
 				} else { 

@@ -66,9 +66,10 @@ module.exports = function(db) {
 	
 	global.getCompanyQuery = function(filter, companySubQueries, personIds, datasetid) {
 		var queryCompany;
+		logger.log(companySubQueries);
 		if (companySubQueries.length > 0) {
 			if (filter.excludeCompanyIds && filter.excludeCompanyIds.length > 0) {
-				queryCompany = { dataset: datasetid, executives: { $in: personIds }, "active": true, "_id": { $nin: filter.excludeCompanyIds }, $or: companySubQueries };
+				queryCompany = { dataset: datasetid, executives: { $in: personIds }, "active": true, "_id": { $nin: filter.excludeCompanyIds }, $and: companySubQueries };
 			} else {
 				queryCompany = { dataset: datasetid, executives: { $in: personIds }, "active": true, $or: companySubQueries };
 			}
@@ -134,8 +135,8 @@ module.exports = function(db) {
 		}
 	
 		var subQueriesCompany = [];
-		if (companyNames && companyNames.length > 0) {
-			subQueriesCompany.push({ "name": { $in : companyNames } });
+		if (companyNames) {
+			subQueriesCompany.push({ "name": companyNames });
 		} 
 		if (employeesGT && !isNaN(employeesGT) && employeesLT && !isNaN(employeesLT)) {
 			subQueriesCompany.push({ "employees": { $gte: employeesGT, $lte: employeesLT } });
