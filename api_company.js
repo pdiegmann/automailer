@@ -77,6 +77,10 @@ module.exports = function(db) {
 	
 					if (!personIds)
 						return callback("no person ids");
+
+					for (var i = 0; i < personIds.length; i++) {
+						personIds[i] = personIds[i]._id;
+					}
 	
 					logger.log("skip: " + skip + " take: " + take + " person count: " + personIds.length);
 	

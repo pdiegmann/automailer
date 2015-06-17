@@ -27,7 +27,7 @@ module.exports = function(db) {
 							if (!person) {
 								return callback();
 							}
-							filter.excludeCompanyIds.push(person.company);
+							filter.excludeCompanyIds.push(person.company && person.company._id ? person.company._id : person.company);
 							callback();
 						}, callback);
 					}, function(err) {
@@ -43,6 +43,7 @@ module.exports = function(db) {
 	global.getPersonQuery = function(filter, personSubQueries, datasetid) {
 		var query;
 		var exclusionQueries = [];
+
 		if (filter.excludePersonIds && filter.excludePersonIds.length > 0) {
 			exclusionQueries.push({ "_id": { $nin: filter.excludePersonIds } });
 		}
@@ -66,12 +67,12 @@ module.exports = function(db) {
 	
 	global.getCompanyQuery = function(filter, companySubQueries, personIds, datasetid) {
 		var queryCompany;
-		logger.log(companySubQueries);
+		
 		if (companySubQueries.length > 0) {
 			if (filter.excludeCompanyIds && filter.excludeCompanyIds.length > 0) {
 				queryCompany = { dataset: datasetid, executives: { $in: personIds }, "active": true, "_id": { $nin: filter.excludeCompanyIds }, $and: companySubQueries };
 			} else {
-				queryCompany = { dataset: datasetid, executives: { $in: personIds }, "active": true, $or: companySubQueries };
+				queryCompany = { dataset: datasetid, executives: { $in: personIds }, "active": true, $and: companySubQueries };
 			}
 		}
 		else {
@@ -106,6 +107,7 @@ module.exports = function(db) {
 		var departements = global.stringToRegexQuery(executive.departement);
 		var positions = global.stringToRegexQuery(executive.position);
 		var locations = global.stringToRegexQuery(executive.location);
+		var mailaddresses = global.stringToRegexQuery(executive.mailaddress);
 		
 		var personSubQueries = [];
 		if (departements) {
@@ -116,6 +118,9 @@ module.exports = function(db) {
 		}
 		if (locations) {
 			personSubQueries.push({ "location": locations });
+		}
+		if (mailaddresses) {
+			personSubQueries.push({"mailAddresses.address": mailaddresses});
 		}
 		
 		var companyNames = global.stringToRegexQuery(company.name);
@@ -244,13 +249,17 @@ module.exports = function(db) {
 						}
 					}
 				}
+				
 				return { $in: arr };
 			}
 			else if (str.startsWith("regex:")) {
 				return new RegExp(str.substr(6));
 			}
 			else if (str.startsWith("ci:")) {
-				return new RegExp("^" + str.substr(3).replace(/\./g, "\\.") + "$", "i");
+				return new RegExp(str.substr(3), "i");
+				//return new RegExp(str.substr(3).replace(/\./g, "\\."), "i");
+				//return "^" + str.substr(3).replace(/\./g, "\\.") + "$/i";
+				//return new RegExp("^" + str.substr(3).replace(/\./g, "\\.") + "$", "i");
 				//return new RegExp(str.substr(3).replace(/\./g, "\\."), "i");
 			}
 			else {
