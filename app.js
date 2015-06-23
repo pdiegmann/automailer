@@ -177,4 +177,20 @@ app.get("/", function(req, res, next) {
 	res.render(__dirname + "/views/index.jade", { layout: false });
 });
 
+db.DatasetModel.count({active: true}, function(err, count) {
+	if (err) {
+		return logger.error(err);
+	}
+	if (count <= 0) {
+		var dataset = new db.DatasetModel();
+		dataset.active = true;
+		dataset.name = "Default";
+		dataset.save(function(err) {
+			if (err) {
+				return logger.error(err);
+			}
+		});
+	}
+});
+
 app.listen(port);
