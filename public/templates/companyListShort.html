@@ -37,7 +37,7 @@
 							if ((!departementNegated && departementRegex.test(model[i].executives[j].departement)) || (departementNegated && !departementRegex.test(model[i].executives[j].departement))) {
 								matchesQuery = true;
 							}
-							else {
+							else if (!matchesQuery) {
 								matchesQuery = false;
 							}
 						}
@@ -46,7 +46,7 @@
 							if ((!positionNegated && positionRegex.test(model[i].executives[j].position)) || (positionNegated && !positionRegex.test(model[i].executives[j].position))) {
 								matchesQuery = true;
 							}
-							else {
+							else if (!matchesQuery) {
 								matchesQuery = false;
 							}
 						}
@@ -55,7 +55,7 @@
 							if ((!locationNegated && locationRegex.test(model[i].executives[j].location)) || (locationNegated && !locationRegex.test(model[i].executives[j].location))) {
 								matchesQuery = true;
 							}
-							else {
+							else if (!matchesQuery) {
 								matchesQuery = false;
 							}
 						}
@@ -73,7 +73,7 @@
 							if (anyAddressMatches) {
 								matchesQuery = true;
 							}
-							else {
+							else if (!matchesQuery) {
 								matchesQuery = false;
 							}
 						}

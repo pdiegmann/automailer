@@ -35,13 +35,13 @@
 					<div class="form-group form-group-sm">
 						<label for="mail[smtp][server]" class="col-sm-2 control-label">Server:</label>
 						<div class="col-sm-9 col-sm-offset-1" style="margin-top: 0.33em;">
-							<input class="form-control" type="text" name="mail[smtp][server]" placeholder="SMTP-Server" />
+							<input class="form-control" type="text" name="mail[smtp][server]" placeholder="SMTP-Server" value="smtp-auth.uni-koeln.de" />
 						</div>
 					</div>
 					<div class="form-group form-group-sm">
 						<label for="mail[smtp][port]:number" class="col-sm-2 control-label">Port:</label>
 						<div class="col-sm-9 col-sm-offset-1" style="margin-top: 0.33em;">
-							<input class="form-control" type="number" min="0" max="99999" name="mail[smtp][port]:number" placeholder="SMTP-Port" />
+							<input class="form-control" type="number" min="0" max="99999" name="mail[smtp][port]:number" placeholder="SMTP-Port" value="587" />
 						</div>
 					</div>
 					<div class="form-group form-group-sm">
@@ -67,7 +67,7 @@
 						<div class="col-sm-6">
 							<div class="checkbox">
 								<label>
-									<input type="checkbox" name="mail[smtp][tls]:boolean"> TLS
+									<input type="checkbox" name="mail[smtp][tls]:boolean" checked="checked"> TLS
 								</label>
 							</div>
 						</div>

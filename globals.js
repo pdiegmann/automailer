@@ -51,8 +51,12 @@ module.exports = function(db) {
 			exclusionQueries.push({ "company": { $nin: filter.excludeCompanyIds } });
 		}
 		if (personSubQueries.length > 0) {					
-			personSubQueries = personSubQueries.concat(exclusionQueries);
-			query = { dataset: datasetid, "active": true, $and: personSubQueries };
+			//personSubQueries = personSubQueries.concat(exclusionQueries);
+			if (exclusionQueries.length > 0) {
+				query = { dataset: datasetid, "active": true, $or: personSubQueries, $and: exclusionQueries };
+			} else {
+				query = { dataset: datasetid, "active": true, $or: personSubQueries };
+			}
 		}
 		else {
 			if (exclusionQueries.length > 0) {
@@ -82,6 +86,8 @@ module.exports = function(db) {
 				queryCompany = { dataset: datasetid, executives: { $in: personIds }, "active": true };
 			}
 		}
+
+		logger.info(personIds.length);
 		
 		return queryCompany;
 	};
